@@ -69,9 +69,12 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-white p-1 rounded-xl hover:bg-slate-800 transition"
+            type="button"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-red-600 hover:bg-red-500 active:bg-red-700 text-white font-bold text-xs shadow-md shadow-red-950/40 border border-red-500/50 transition active:scale-95 cursor-pointer shrink-0"
+            title="Tutup Panduan"
           >
-            <X className="w-5 h-5" />
+            <span>Tutup</span>
+            <X className="w-4 h-4" />
           </button>
         </div>
 
@@ -111,27 +114,22 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="p-4 border-t border-slate-800 bg-[#0a0f1d] flex items-center justify-between gap-3">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition"
-          >
-            Tutup
-          </button>
-          {onStartCoding && (
+        {/* Footer (Hanya tampil jika ada aksi Mulai Coding) */}
+        {onStartCoding && (
+          <div className="p-4 border-t border-slate-800 bg-[#0a0f1d] flex items-center justify-end">
             <button
+              type="button"
               onClick={() => {
                 onClose()
                 onStartCoding()
               }}
-              className="px-5 py-2.5 bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-semibold rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-cyan-500/20 active:scale-95 transition"
+              className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-semibold rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20 active:scale-95 transition cursor-pointer"
             >
               <span>Mulai Coding Sekarang</span>
               <ArrowRight className="w-4 h-4" />
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   )
