@@ -429,6 +429,8 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
               activeFile={activeFile}
               files={files}
               githubToken={githubToken}
+              folderLinked={folderLinked}
+              onOpenFolder={onOpenFolder}
             />
           </div>
         </div>

@@ -575,6 +575,8 @@ export const App: React.FC = () => {
               activeFile={activeFile}
               files={files}
               githubToken={settings.githubToken}
+              folderLinked={!!folderName}
+              onOpenFolder={handleLinkFolder}
             />
           </div>
         )}

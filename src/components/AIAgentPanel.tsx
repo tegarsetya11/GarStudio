@@ -15,6 +15,7 @@ import {
   X,
   UploadCloud,
   GitBranch,
+  FolderOpen,
 } from 'lucide-react'
 import type { AIMessage, AIMode, AIProvider, AIStage, FileChange, WorkspaceFile } from '../types'
 import { AIAgentService } from '../services/aiAgentService'
@@ -35,6 +36,8 @@ interface AIAgentPanelProps {
   onClose?: () => void
   onGitHubUpload?: (repoName: string, isPrivate: boolean) => Promise<void>
   githubToken?: string
+  folderLinked?: boolean
+  onOpenFolder?: () => void
 }
 
 export const AIAgentPanel: React.FC<AIAgentPanelProps> = ({
@@ -51,6 +54,8 @@ export const AIAgentPanel: React.FC<AIAgentPanelProps> = ({
   onClose,
   onGitHubUpload,
   githubToken = '',
+  folderLinked = false,
+  onOpenFolder,
 }) => {
   const [inputPrompt, setInputPrompt] = useState('')
   const [ghRepoName, setGhRepoName] = useState('garstudio-app')
@@ -536,13 +541,41 @@ export const AIAgentPanel: React.FC<AIAgentPanelProps> = ({
         {activePrompts.map((qp, i) => (
           <button
             key={i}
-            onClick={() => onSendPrompt(qp, aiMode)}
-            className="px-2.5 py-1 text-[11px] rounded bg-[#252526] hover:bg-[#2a2d2e] text-slate-300 border border-[#333333] whitespace-nowrap active:scale-95 transition"
+            onClick={() => folderLinked && onSendPrompt(qp, aiMode)}
+            disabled={!folderLinked}
+            className={`px-2.5 py-1 text-[11px] rounded bg-[#252526] border border-[#333333] whitespace-nowrap transition ${
+              folderLinked
+                ? 'text-slate-300 hover:bg-[#2a2d2e] active:scale-95 cursor-pointer'
+                : 'text-slate-600 cursor-not-allowed opacity-50'
+            }`}
           >
             {qp}
           </button>
         ))}
       </div>
+
+      {/* ⚠️ Folder Warning Banner — tampil ketika belum ada folder */}
+      {!folderLinked && (
+        <div className="mx-2.5 mb-2 mt-1 p-3 rounded-xl bg-amber-950/70 border border-amber-600/40 flex flex-col gap-2 shadow-inner">
+          <div className="flex items-center gap-2 text-amber-300 font-semibold text-[11px]">
+            <span className="text-base leading-none">📁</span>
+            <span>Folder belum terhubung</span>
+          </div>
+          <p className="text-[10px] text-amber-200/80 leading-relaxed">
+            Hubungkan atau buat folder terlebih dahulu agar AI dapat menyimpan file ke perangkat Anda.
+          </p>
+          {onOpenFolder && (
+            <button
+              type="button"
+              onClick={onOpenFolder}
+              className="mt-0.5 w-full py-1.5 px-3 rounded-lg bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-amber-950 font-bold text-[11px] flex items-center justify-center gap-1.5 transition active:scale-95 shadow"
+            >
+              <FolderOpen className="w-3.5 h-3.5" />
+              <span>Buka / Hubungkan Folder</span>
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Chat Input Bar */}
       <form
@@ -554,16 +587,22 @@ export const AIAgentPanel: React.FC<AIAgentPanelProps> = ({
           value={inputPrompt}
           onChange={(e) => setInputPrompt(e.target.value)}
           placeholder={
-            aiMode === 'plan'
+            !folderLinked
+              ? '⚠️ Hubungkan folder dulu sebelum menggunakan AI...'
+              : aiMode === 'plan'
               ? `[Mode Plan] Minta ${aiProvider === 'claude' ? 'Claude' : 'Gemini'} merencanakan fitur...`
               : `[Interaktif] Tanya ${aiProvider === 'claude' ? 'Claude' : 'Gemini'} tentang ${activeFile?.name || 'project'}...`
           }
-          disabled={aiStage === 'planning' || aiStage === 'generating'}
-          className="flex-1 bg-[#252526] border border-[#3c3c3c] rounded px-3 py-2 text-xs text-slate-100 placeholder-slate-400 focus:outline-none focus:border-[#007acc]"
+          disabled={!folderLinked || aiStage === 'planning' || aiStage === 'generating'}
+          className={`flex-1 bg-[#252526] border rounded px-3 py-2 text-xs placeholder-slate-500 focus:outline-none transition ${
+            !folderLinked
+              ? 'border-amber-700/40 text-slate-500 cursor-not-allowed'
+              : 'border-[#3c3c3c] text-slate-100 focus:border-[#007acc]'
+          }`}
         />
         <button
           type="submit"
-          disabled={!inputPrompt.trim() || aiStage === 'planning' || aiStage === 'generating'}
+          disabled={!folderLinked || !inputPrompt.trim() || aiStage === 'planning' || aiStage === 'generating'}
           className={`p-2 rounded text-white disabled:opacity-40 transition active:scale-95 shadow ${
             aiProvider === 'claude'
               ? 'bg-amber-600 hover:bg-amber-500'
