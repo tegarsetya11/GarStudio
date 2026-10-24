@@ -133,7 +133,7 @@ export const App: React.FC = () => {
         return {
           aiProvider: parsed.aiProvider || 'gemini',
           geminiApiKey: parsed.geminiApiKey || '',
-          geminiModel: parsed.geminiModel || 'gemini-2.0-flash',
+          geminiModel: (!parsed.geminiModel || parsed.geminiModel === 'gemini-2.0-flash' || parsed.geminiModel === 'gemini-2.5-flash') ? 'gemini-3.8-flash' : parsed.geminiModel,
           claudeApiKey: parsed.claudeApiKey || '',
           claudeModel: parsed.claudeModel || 'claude-3-5-sonnet-20241022',
           copilotToken: parsed.copilotToken || '',
@@ -151,7 +151,7 @@ export const App: React.FC = () => {
     return {
       aiProvider: 'gemini',
       geminiApiKey: '',
-      geminiModel: 'gemini-2.0-flash',
+      geminiModel: 'gemini-3.8-flash',
       claudeApiKey: '',
       claudeModel: 'claude-3-5-sonnet-20241022',
       copilotToken: '',

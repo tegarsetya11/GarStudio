@@ -200,7 +200,7 @@ Respond ONLY with a valid JSON object matching this schema without markdown fenc
       } else {
         if (!geminiKey) return { plan: this.mockPlan(prompt, 'Gemini') }
         const genAI = new GoogleGenerativeAI(geminiKey)
-        const model = genAI.getGenerativeModel({ model: geminiModel || 'gemini-2.0-flash' })
+        const model = genAI.getGenerativeModel({ model: geminiModel || 'gemini-3.8-flash' })
         const result = await model.generateContent(systemPrompt)
         text = result.response.text()
       }
@@ -264,7 +264,7 @@ Return ONLY valid JSON.`
       } else {
         if (!geminiKey) return { changes: this.mockCodeGeneration(currentFiles) }
         const genAI = new GoogleGenerativeAI(geminiKey)
-        const model = genAI.getGenerativeModel({ model: geminiModel || 'gemini-2.0-flash' })
+        const model = genAI.getGenerativeModel({ model: geminiModel || 'gemini-3.8-flash' })
         const result = await model.generateContent(prompt)
         text = result.response.text()
       }
@@ -335,7 +335,7 @@ Berikan respons yang membantu, ramah, dan ringkas. Jika kamu memberikan perubaha
             message: `💬 [Gemini - Interaktif]: Saya menerima: "${prompt}". Tambahkan Gemini API Key di Settings untuk respons AI penuh.`,
           }
         const genAI = new GoogleGenerativeAI(geminiKey)
-        const model = genAI.getGenerativeModel({ model: geminiModel || 'gemini-2.0-flash' })
+        const model = genAI.getGenerativeModel({ model: geminiModel || 'gemini-3.8-flash' })
         const result = await model.generateContent(`${systemPrompt}\n\nUser: ${prompt}`)
         text = result.response.text()
       }
@@ -416,7 +416,7 @@ Return ONLY a JSON array of FileChange objects (no markdown, no explanation outs
         text = await callCopilotAPI(copilotToken, copilotModel || 'gpt-4o', sysPrompt, prompt)
       } else {
         const genAI = new GoogleGenerativeAI(geminiKey)
-        const model = genAI.getGenerativeModel({ model: geminiModel || 'gemini-2.0-flash' })
+        const model = genAI.getGenerativeModel({ model: geminiModel || 'gemini-3.8-flash' })
         const result = await model.generateContent(prompt)
         text = result.response.text()
       }

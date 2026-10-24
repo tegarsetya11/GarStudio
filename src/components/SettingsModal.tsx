@@ -117,10 +117,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   onChange={(e) => onUpdateSettings({ geminiModel: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 text-xs focus:outline-none focus:ring-1 focus:ring-cyan-500"
                 >
-                  <option value="gemini-2.0-flash">⚡ Gemini 2.0 Flash (Default — Cepat &amp; Pintar)</option>
+                  <option value="gemini-3.8-flash">⚡ Gemini 3.8 Flash (Default — Generasi Terbaru & Pintar)</option>
+                  <option value="gemini-2.5-flash">✨ Gemini 2.5 Flash</option>
+                  <option value="gemini-2.0-flash">🔥 Gemini 2.0 Flash (Stabil)</option>
                   <option value="gemini-2.0-flash-exp">🧪 Gemini 2.0 Flash Exp (Experimental)</option>
                   <option value="gemini-1.5-pro">🧠 Gemini 1.5 Pro (Deep Reasoning)</option>
-                  <option value="gemini-1.5-flash">🚀 Gemini 1.5 Flash (Ultra Fast, Limit Tinggi)</option>
+                  <option value="gemini-1.5-flash">🚀 Gemini 1.5 Flash (Ultra Fast)</option>
                 </select>
               </div>
               <div className="text-[10px] text-slate-500 bg-slate-950 rounded-lg px-2.5 py-1.5 border border-slate-800">
