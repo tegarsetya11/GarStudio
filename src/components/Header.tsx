@@ -71,30 +71,18 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="h-11 bg-[#131314]/95 backdrop-blur-md border-b border-[#282a2c] px-3 flex items-center justify-between shrink-0 select-none z-30 text-slate-300 text-xs">
-      {/* Left: Google Gemini Sparkle Brand & File Explorer Button */}
+      {/* Left: Original GarStudio Brand Logo & File Explorer Button */}
       <div className="flex items-center gap-2">
         <div className="flex items-center gap-2">
-          {/* Google Gemini 4-pointed Star Sparkle Icon */}
-          <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-[#4285f4] via-[#9b72cf] to-[#d96570] p-[1.5px] shadow-lg shadow-indigo-500/15 flex items-center justify-center">
-            <div className="w-full h-full bg-[#131314] rounded-[10px] flex items-center justify-center">
-              <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="url(#geminiGlow)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <defs>
-                  <linearGradient id="geminiGlow" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#4285f4" />
-                    <stop offset="50%" stopColor="#9b72cf" />
-                    <stop offset="100%" stopColor="#d96570" />
-                  </linearGradient>
-                </defs>
-                <path d="M12 2L14.4 9.6L22 12L14.4 14.4L12 22L9.6 14.4L2 12L9.6 9.6L12 2Z" fill="url(#geminiGlow)" fillOpacity="0.8" />
-              </svg>
-            </div>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="font-extrabold text-sm tracking-tight text-white">GarStudio</span>
-            <span className="hidden md:inline-flex text-[10px] font-medium bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent border border-purple-500/30 px-1.5 py-0.5 rounded-full">
-              Gemini Canvas
-            </span>
-          </div>
+          {/* Logo Asli GarStudio */}
+          <img
+            src="/garstudio-icon.png"
+            alt="GarStudio"
+            className="w-6 h-6 object-contain rounded drop-shadow-sm select-none"
+          />
+          <span className="font-extrabold text-sm tracking-tight bg-gradient-to-r from-cyan-400 via-sky-300 to-indigo-300 bg-clip-text text-transparent">
+            GarStudio
+          </span>
         </div>
 
         {/* File Explorer Toggle Pill */}
