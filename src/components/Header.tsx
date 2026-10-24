@@ -8,19 +8,15 @@ import {
   BookOpen,
 } from 'lucide-react'
 import { GithubIcon } from './GithubIcon'
-import type { UserSession, ViewMode, WorkspaceFile } from '../types'
+import type { UserSession, WorkspaceFile } from '../types'
 
 interface HeaderProps {
   folderName: string | null
   activeFile: WorkspaceFile | null
-  viewMode: ViewMode
-  setViewMode: (mode: ViewMode) => void
   onOpenFolder: () => void
   onOpenSettings: () => void
   onOpenGitHub: () => void
   onExport: () => void
-  onRunPreview: () => void
-  hasError: boolean
   currentUser?: UserSession | null
   onLogout?: () => void
   onOpenTutorial?: () => void
@@ -29,14 +25,10 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({
   folderName,
   activeFile,
-  viewMode,
-  setViewMode,
   onOpenFolder,
   onOpenSettings,
   onOpenGitHub,
   onExport,
-  onRunPreview,
-  hasError,
   currentUser,
   onLogout,
   onOpenTutorial,

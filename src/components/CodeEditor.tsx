@@ -22,7 +22,6 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
   file,
   onChange,
   onSave,
-  isSaved = true,
 }) => {
   const editorContainerRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)

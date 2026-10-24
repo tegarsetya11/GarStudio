@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Sparkles, BookOpen, LogIn, ArrowRight, Smartphone, Code2, Globe, Bot, CheckCircle2, Shield, X } from 'lucide-react'
+import { Sparkles, BookOpen, LogIn, ArrowRight, Smartphone, Code2, Globe, Bot, Shield, X } from 'lucide-react'
 import { GithubIcon } from './GithubIcon'
 import { TutorialModal } from './TutorialModal'
 import type { UserSession } from '../types'

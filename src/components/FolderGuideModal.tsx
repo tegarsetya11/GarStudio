@@ -1,5 +1,5 @@
 import React from 'react'
-import { FolderOpen, Smartphone, Check, ArrowRight, X, AlertCircle } from 'lucide-react'
+import { FolderOpen, Smartphone, ArrowRight, X } from 'lucide-react'
 
 interface FolderGuideModalProps {
   isOpen: boolean

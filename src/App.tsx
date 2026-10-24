@@ -362,17 +362,10 @@ export const App: React.FC = () => {
       <Header
         folderName={folderName}
         activeFile={activeFile}
-        viewMode={viewMode}
-        setViewMode={setViewMode}
         onOpenFolder={handleLinkFolder}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenGitHub={() => setIsGitHubOpen(true)}
         onExport={handleExport}
-        onRunPreview={() => {
-          setMobilePreviewVisible((v) => !v)
-          setViewMode(viewMode === 'preview' ? 'editor' : 'preview')
-        }}
-        hasError={!!currentError}
         currentUser={currentUser}
         onLogout={handleLogout}
         onOpenTutorial={() => setIsTutorialOpen(true)}

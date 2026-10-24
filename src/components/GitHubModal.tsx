@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { UploadCloud, CheckCircle, ExternalLink, X, Lock, Globe, AlertCircle, Info } from 'lucide-react'
+import { UploadCloud, CheckCircle, ExternalLink, X, Lock, Globe, AlertCircle } from 'lucide-react'
 import { GithubIcon } from './GithubIcon'
 import type { GitHubConfig, WorkspaceFile } from '../types'
 import { GitHubService } from '../services/githubService'
