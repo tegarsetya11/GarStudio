@@ -277,12 +277,24 @@ export const App: React.FC = () => {
   // Apply AI Changes directly to workspace files, persist to storage, and activate index.html
   const applyChangesToWorkspace = async (changes: FileChange[]) => {
     let updatedFiles = [...files]
+    const norm = (p: string) => (p || '').replace(/^[./\\]+/, '').toLowerCase()
 
     for (const change of changes) {
-      const existing = updatedFiles.find((f) => f.path === change.path)
+      if (!change || !change.path || typeof change.code !== 'string') continue
+
+      const changeNorm = norm(change.path)
+      const existing = updatedFiles.find(
+        (f) =>
+          f.path === change.path ||
+          f.name === change.path ||
+          norm(f.path) === changeNorm ||
+          norm(f.name) === changeNorm ||
+          (changeNorm.endsWith('.html') && (f.name === 'index.html' || norm(f.path).endsWith('.html')))
+      )
+
       if (existing) {
         updatedFiles = updatedFiles.map((f) =>
-          f.path === change.path ? { ...f, content: change.code } : f
+          f.id === existing.id ? { ...f, content: change.code } : f
         )
         await FileSystemService.saveFileContent(existing, change.code)
       } else {

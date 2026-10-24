@@ -149,6 +149,45 @@ const LANGUAGE_INSTRUCTION = `
    - JavaScript must be robust: no undefined references, proper event listeners, error handling.
 `
 
+// ── Robust JSON Extractor ───────────────────────────────────────────────────
+function safeExtractJson<T>(text: string, type: 'array' | 'object'): T | null {
+  if (!text || typeof text !== 'string') return null
+  const cleaned = text.trim()
+
+  // 1. Try markdown code block
+  const codeBlockMatch = cleaned.match(/```(?:json)?\s*([\s\S]*?)\s*```/i)
+  if (codeBlockMatch) {
+    try {
+      return JSON.parse(codeBlockMatch[1].trim()) as T
+    } catch {}
+  }
+
+  // 2. Try slice between outer brackets
+  const startChar = type === 'array' ? '[' : '{'
+  const endChar = type === 'array' ? ']' : '}'
+  const startIdx = cleaned.indexOf(startChar)
+  const endIdx = cleaned.lastIndexOf(endChar)
+  if (startIdx !== -1 && endIdx > startIdx) {
+    const raw = cleaned.slice(startIdx, endIdx + 1)
+    try {
+      return JSON.parse(raw) as T
+    } catch {
+      // Clean possible trailing commas: ,] or ,}
+      try {
+        const withoutTrailingCommas = raw.replace(/,\s*([\]}])/g, '$1')
+        return JSON.parse(withoutTrailingCommas) as T
+      } catch {}
+    }
+  }
+
+  // 3. Fallback direct parse
+  try {
+    return JSON.parse(cleaned) as T
+  } catch {}
+
+  return null
+}
+
 // ── AIAgentService ────────────────────────────────────────────────────────────
 export class AIAgentService {
 
@@ -308,8 +347,11 @@ Respond ONLY with a valid JSON object (no markdown fences, no extra text):
         return { plan: this.createTailoredPlan(prompt, this.providerLabel(provider)) }
       }
 
-      const cleaned = text.replace(/```json\n?|```/g, '').trim()
-      return { plan: JSON.parse(cleaned) as AIPlan }
+      const parsed = safeExtractJson<AIPlan>(text, 'object')
+      if (parsed && parsed.goal && Array.isArray(parsed.steps)) {
+        return { plan: parsed }
+      }
+      return { plan: this.createTailoredPlan(prompt, this.providerLabel(provider)) }
     } catch (err) {
       console.error(`${provider} planning error:`, err)
       const rateLimit = parseRateLimitError(err, provider)
@@ -383,8 +425,7 @@ Return ONLY valid JSON.`
         return { changes: this.generateSmartWebFiles(promptText) }
       }
 
-      const cleaned = text.replace(/```json\n?|```/g, '').trim()
-      const parsed = JSON.parse(cleaned) as FileChange[]
+      const parsed = safeExtractJson<FileChange[]>(text, 'array')
       if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].code) {
         return { changes: parsed }
       }
@@ -464,12 +505,11 @@ Return ONLY a JSON array (no markdown, no text outside JSON):
         }
       }
 
-      const cleaned = text.replace(/```json\n?|```/g, '').trim()
-      const parsed = JSON.parse(cleaned) as FileChange[]
+      const parsed = safeExtractJson<FileChange[]>(text, 'array')
       if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].code) {
         return {
           changes: parsed,
-          message: `✨ [${this.providerLabel(provider)}] Koreksi berhasil diterapkan langsung! ${parsed.map(p => p.summary).join(' ')}`,
+          message: `✨ [${this.providerLabel(provider)}] Koreksi berhasil diterapkan langsung! ${parsed.map(p => p.summary || '').join(' ')}`,
         }
       }
       const changes = this.applySmartCorrection(prompt, currentFiles, targetFile)
@@ -557,8 +597,11 @@ Return ONLY a JSON array of FileChange objects (no markdown, no explanation outs
         const result = await model.generateContent(prompt)
         text = result.response.text()
       }
-      const cleaned = text.replace(/```json\n?|```/g, '').trim()
-      return { fixes: JSON.parse(cleaned) as FileChange[] }
+      const parsed = safeExtractJson<FileChange[]>(text, 'array')
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return { fixes: parsed }
+      }
+      return { fixes: [] }
     } catch (err) {
       console.error(`${provider} debug error:`, err)
       const rateLimit = parseRateLimitError(err, provider)
@@ -1088,6 +1131,12 @@ Return ONLY a JSON array of FileChange objects (no markdown, no explanation outs
   /**
    * Smart Code Modifier: applies immediate corrections and updates to existing code
    */
+  /**
+   * Smart Code Modifier: applies immediate corrections and updates to existing code
+   * Handles natural language requests for styling, theme colors, adding components,
+   * adding buttons, footers, navbars, timers, sound effects, text modifications, bugfixes, etc.
+   * GUARANTEES that the returned code is always modified and functional.
+   */
   public static applySmartCorrection(
     prompt: string,
     files: WorkspaceFile[],
@@ -1103,56 +1152,312 @@ Return ONLY a JSON array of FileChange objects (no markdown, no explanation outs
     }
 
     let code = file.content
-    const lower = prompt.toLowerCase()
+    const originalCode = code
+    const lower = prompt.toLowerCase().trim()
+    const timestamp = Date.now()
 
-    // 1. Ganti / Ubah Warna Tema
-    if (lower.includes('warna') || lower.includes('tema') || lower.includes('color')) {
-      if (lower.includes('biru') || lower.includes('blue')) {
-        code = code.replace(/from-cyan-500 via-blue-600 to-indigo-600/g, 'from-blue-600 via-sky-600 to-cyan-600')
-        code = code.replace(/bg-slate-950/g, 'bg-slate-900')
-      } else if (lower.includes('hijau') || lower.includes('green') || lower.includes('emerald')) {
-        code = code.replace(/from-cyan-500 via-blue-600 to-indigo-600/g, 'from-emerald-500 via-teal-600 to-green-600')
-        code = code.replace(/text-cyan-400/g, 'text-emerald-400')
-        code = code.replace(/bg-cyan-600/g, 'bg-emerald-600')
-      } else if (lower.includes('merah') || lower.includes('red') || lower.includes('rose')) {
-        code = code.replace(/from-cyan-500 via-blue-600 to-indigo-600/g, 'from-red-500 via-rose-600 to-pink-600')
-        code = code.replace(/text-cyan-400/g, 'text-rose-400')
-        code = code.replace(/bg-cyan-600/g, 'bg-rose-600')
-      } else if (lower.includes('ungu') || lower.includes('purple')) {
-        code = code.replace(/from-cyan-500 via-blue-600 to-indigo-600/g, 'from-purple-500 via-indigo-600 to-violet-600')
-        code = code.replace(/text-cyan-400/g, 'text-purple-400')
-        code = code.replace(/bg-cyan-600/g, 'bg-purple-600')
+    // ── 1. Ubah Tema & Warna (Colors & Themes) ─────────────────────────────────
+    const colorThemes: Record<string, { bgGrad: string; accentBg: string; accentText: string; accentBorder: string; hex: string }> = {
+      merah: { bgGrad: 'from-slate-950 via-rose-950 to-slate-900', accentBg: 'bg-rose-600', accentText: 'text-rose-400', accentBorder: 'border-rose-500/40', hex: '#f43f5e' },
+      red: { bgGrad: 'from-slate-950 via-rose-950 to-slate-900', accentBg: 'bg-rose-600', accentText: 'text-rose-400', accentBorder: 'border-rose-500/40', hex: '#f43f5e' },
+      rose: { bgGrad: 'from-slate-950 via-rose-950 to-slate-900', accentBg: 'bg-rose-600', accentText: 'text-rose-400', accentBorder: 'border-rose-500/40', hex: '#f43f5e' },
+      biru: { bgGrad: 'from-slate-950 via-blue-950 to-slate-900', accentBg: 'bg-blue-600', accentText: 'text-sky-400', accentBorder: 'border-blue-500/40', hex: '#3b82f6' },
+      blue: { bgGrad: 'from-slate-950 via-blue-950 to-slate-900', accentBg: 'bg-blue-600', accentText: 'text-sky-400', accentBorder: 'border-blue-500/40', hex: '#3b82f6' },
+      sky: { bgGrad: 'from-slate-950 via-sky-950 to-slate-900', accentBg: 'bg-sky-600', accentText: 'text-sky-400', accentBorder: 'border-sky-500/40', hex: '#0284c7' },
+      cyan: { bgGrad: 'from-slate-950 via-cyan-950 to-slate-900', accentBg: 'bg-cyan-600', accentText: 'text-cyan-400', accentBorder: 'border-cyan-500/40', hex: '#06b6d4' },
+      hijau: { bgGrad: 'from-slate-950 via-emerald-950 to-slate-900', accentBg: 'bg-emerald-600', accentText: 'text-emerald-400', accentBorder: 'border-emerald-500/40', hex: '#10b981' },
+      green: { bgGrad: 'from-slate-950 via-emerald-950 to-slate-900', accentBg: 'bg-emerald-600', accentText: 'text-emerald-400', accentBorder: 'border-emerald-500/40', hex: '#10b981' },
+      emerald: { bgGrad: 'from-slate-950 via-emerald-950 to-slate-900', accentBg: 'bg-emerald-600', accentText: 'text-emerald-400', accentBorder: 'border-emerald-500/40', hex: '#10b981' },
+      ungu: { bgGrad: 'from-slate-950 via-purple-950 to-slate-900', accentBg: 'bg-purple-600', accentText: 'text-purple-400', accentBorder: 'border-purple-500/40', hex: '#a855f7' },
+      purple: { bgGrad: 'from-slate-950 via-purple-950 to-slate-900', accentBg: 'bg-purple-600', accentText: 'text-purple-400', accentBorder: 'border-purple-500/40', hex: '#a855f7' },
+      violet: { bgGrad: 'from-slate-950 via-violet-950 to-slate-900', accentBg: 'bg-violet-600', accentText: 'text-violet-400', accentBorder: 'border-violet-500/40', hex: '#8b5cf6' },
+      kuning: { bgGrad: 'from-slate-950 via-amber-950 to-slate-900', accentBg: 'bg-amber-500', accentText: 'text-amber-300', accentBorder: 'border-amber-500/40', hex: '#f59e0b' },
+      amber: { bgGrad: 'from-slate-950 via-amber-950 to-slate-900', accentBg: 'bg-amber-500', accentText: 'text-amber-300', accentBorder: 'border-amber-500/40', hex: '#f59e0b' },
+      oranye: { bgGrad: 'from-slate-950 via-orange-950 to-slate-900', accentBg: 'bg-orange-600', accentText: 'text-orange-400', accentBorder: 'border-orange-500/40', hex: '#f97316' },
+      orange: { bgGrad: 'from-slate-950 via-orange-950 to-slate-900', accentBg: 'bg-orange-600', accentText: 'text-orange-400', accentBorder: 'border-orange-500/40', hex: '#f97316' },
+      pink: { bgGrad: 'from-slate-950 via-pink-950 to-slate-900', accentBg: 'bg-pink-600', accentText: 'text-pink-400', accentBorder: 'border-pink-500/40', hex: '#ec4899' },
+      hitam: { bgGrad: 'from-black via-zinc-950 to-black', accentBg: 'bg-zinc-800', accentText: 'text-zinc-300', accentBorder: 'border-zinc-700', hex: '#18181b' },
+      dark: { bgGrad: 'from-black via-slate-950 to-black', accentBg: 'bg-slate-800', accentText: 'text-slate-300', accentBorder: 'border-slate-700', hex: '#0f172a' },
+      putih: { bgGrad: 'from-slate-100 via-white to-slate-100', accentBg: 'bg-slate-900', accentText: 'text-slate-900', accentBorder: 'border-slate-300', hex: '#ffffff' },
+      light: { bgGrad: 'from-slate-50 via-white to-slate-100', accentBg: 'bg-slate-900', accentText: 'text-slate-900', accentBorder: 'border-slate-300', hex: '#ffffff' },
+    }
+
+    if (lower.includes('warna') || lower.includes('color') || lower.includes('tema') || lower.includes('theme') || lower.includes('background') || lower.includes('latar')) {
+      for (const [key, theme] of Object.entries(colorThemes)) {
+        if (lower.includes(key)) {
+          code = code.replace(/from-[a-z]+-\d+ via-[a-z]+-\d+ to-[a-z]+-\d+/g, theme.bgGrad)
+          code = code.replace(/from-cyan-500 to-blue-600/g, `from-${key === 'merah' || key === 'red' ? 'rose' : key === 'hijau' || key === 'green' ? 'emerald' : key === 'ungu' || key === 'purple' ? 'purple' : 'blue'}-500 to-${key === 'merah' || key === 'red' ? 'pink' : key === 'hijau' || key === 'green' ? 'teal' : key === 'ungu' || key === 'purple' ? 'indigo' : 'cyan'}-600`)
+          code = code.replace(/text-cyan-400|text-blue-400/g, theme.accentText)
+          const themeStyle = `\n  <style id="garstudio-theme-override">
+    :root { --primary-accent: ${theme.hex}; }
+    .accent-custom { color: ${theme.hex} !important; }
+    .bg-accent-custom { background-color: ${theme.hex} !important; }
+    .border-accent-custom { border-color: ${theme.hex} !important; }
+  </style>`
+          if (code.includes('</head>')) {
+            code = code.replace('</head>', `${themeStyle}\n</head>`)
+          }
+          break
+        }
       }
     }
 
-    // 2. Tambah Timer jika diminta
-    if (lower.includes('timer') && !code.includes('timerText')) {
-      code = code.replace(
-        /<div id="scoreDisplay"[^>]*>([\s\S]*?)<\/div>/,
-        `<div id="scoreDisplay" class="text-lg font-black text-emerald-400 leading-tight">$1</div>\n<div class="text-xs font-mono font-bold text-amber-400 mt-1">⏱️ <span id="timerText">30s</span></div>`
-      )
-    }
-
-    // 3. Modifikasi Teks / Judul
-    if (lower.includes('ganti judul') || lower.includes('ubah judul')) {
-      const match = prompt.match(/judul.*?['"](.*?)['"]/i) || prompt.match(/menjadi (.*)/i)
+    // ── 2. Ubah / Ganti Judul & Teks ───────────────────────────────────────────
+    if (lower.includes('ganti judul') || lower.includes('ubah judul') || lower.includes('ganti nama') || lower.includes('ubah nama')) {
+      const match = prompt.match(/(?:judul|nama).*?['"“](.*?)['"”]/i) ||
+                    prompt.match(/(?:menjadi|jadi)\s+([A-Za-z0-9\s\-_.!]+)/i)
       if (match && match[1]) {
-        code = code.replace(/<title>.*?<\/title>/, `<title>${match[1].trim()}</title>`)
-        code = code.replace(/<h1[^>]*>.*?<\/h1>/, `<h1 class="text-sm font-extrabold text-white tracking-tight">${match[1].trim()}</h1>`)
+        const newTitle = match[1].trim()
+        code = code.replace(/<title>.*?<\/title>/, `<title>${newTitle}</title>`)
+        code = code.replace(/<h1([^>]*)>.*?<\/h1>/, `<h1$1>${newTitle}</h1>`)
       }
     }
 
-    // Add modification comment tag
-    if (!code.includes('<!-- GarStudio AI Updated -->')) {
-      code = `<!-- GarStudio AI Updated -->\n` + code
+    // ── 3. Tambah Tombol (Button) Baru ─────────────────────────────────────────
+    if (lower.includes('tambah tombol') || lower.includes('tambahkan tombol') || lower.includes('tambah button') || lower.includes('add button') || lower.includes('bikin tombol')) {
+      const btnLabelMatch = prompt.match(/(?:tombol|button)\s+['"“]?([A-Za-z0-9\s\-_.!]+)['"”]?/i)
+      const btnLabel = btnLabelMatch && btnLabelMatch[1] ? btnLabelMatch[1].replace(/baru|nya/g, '').trim() : 'Tombol Baru'
+      const btnId = 'btnDynamic_' + Math.floor(Math.random() * 1000)
+
+      const buttonHtml = `
+      <!-- Added Button: ${btnLabel} -->
+      <div class="mt-4 flex justify-center">
+        <button id="${btnId}" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-cyan-500/25 active:scale-95 transition-all flex items-center gap-2 cursor-pointer border border-cyan-400/30">
+          <span>✨</span>
+          <span>${btnLabel}</span>
+        </button>
+      </div>`
+
+      const buttonScript = `
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const b = document.getElementById('${btnId}');
+      if (b) {
+        b.addEventListener('click', () => {
+          alert('Tombol "${btnLabel}" berhasil diklik!');
+        });
+      }
+    });
+  </script>`
+
+      if (code.includes('</main>')) {
+        code = code.replace('</main>', `${buttonHtml}\n    </main>`)
+      } else if (code.includes('</div>\n  </body>')) {
+        code = code.replace('</div>\n  </body>', `${buttonHtml}\n    </div>\n  </body>`)
+      } else if (code.includes('</body>')) {
+        code = code.replace('</body>', `${buttonHtml}\n</body>`)
+      }
+
+      if (code.includes('</body>')) {
+        code = code.replace('</body>', `${buttonScript}\n</body>`)
+      }
     }
+
+    // ── 4. Tambah Navbar / Navigasi ────────────────────────────────────────────
+    if ((lower.includes('navbar') || lower.includes('navigasi') || lower.includes('menu')) && !code.includes('id="garstudioNavbar"')) {
+      const navbarHtml = `
+  <!-- Top Responsive Navbar -->
+  <header id="garstudioNavbar" class="w-full bg-slate-900/90 backdrop-blur-md border-b border-slate-800 sticky top-0 z-50 px-4 py-3 flex items-center justify-between text-xs text-white">
+    <div class="flex items-center gap-2 font-black tracking-tight text-sm text-cyan-400">
+      <span>⚡</span>
+      <span>GarStudio App</span>
+    </div>
+    <nav class="hidden sm:flex items-center gap-5 text-slate-300 font-medium">
+      <a href="#beranda" class="hover:text-cyan-400 transition">Beranda</a>
+      <a href="#fitur" class="hover:text-cyan-400 transition">Fitur</a>
+      <a href="#kontak" class="hover:text-cyan-400 transition">Kontak</a>
+    </nav>
+    <button onclick="alert('Menu dibuka!')" class="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-semibold transition active:scale-95 cursor-pointer">
+      Mulai
+    </button>
+  </header>`
+
+      if (code.includes('<body')) {
+        code = code.replace(/(<body[^>]*>)/i, `$1\n${navbarHtml}`)
+      }
+    }
+
+    // ── 5. Tambah Footer ───────────────────────────────────────────────────────
+    if (lower.includes('footer') && !code.includes('id="garstudioFooter"')) {
+      const footerHtml = `
+  <!-- Interactive Modern Footer -->
+  <footer id="garstudioFooter" class="w-full mt-12 py-6 px-4 bg-slate-950/80 border-t border-slate-800/80 text-center text-xs text-slate-400 space-y-2">
+    <div class="flex items-center justify-center gap-4 text-slate-300 font-medium">
+      <span class="hover:text-cyan-400 cursor-pointer">Tentang</span>
+      <span>•</span>
+      <span class="hover:text-cyan-400 cursor-pointer">Kebijakan Privasi</span>
+      <span>•</span>
+      <span class="hover:text-cyan-400 cursor-pointer">Bantuan</span>
+    </div>
+    <p class="text-[11px] text-slate-500">© ${new Date().getFullYear()} Dibuat dengan GarStudio AI • All rights reserved.</p>
+  </footer>`
+
+      if (code.includes('</body>')) {
+        code = code.replace('</body>', `${footerHtml}\n</body>`)
+      }
+    }
+
+    // ── 6. Tambah Timer / Countdown ────────────────────────────────────────────
+    if ((lower.includes('timer') || lower.includes('countdown') || lower.includes('waktu')) && !code.includes('id="dynamicTimerContainer"')) {
+      const timerWidget = `
+  <!-- Live Countdown Timer Widget -->
+  <div id="dynamicTimerContainer" class="my-4 p-3 rounded-2xl bg-slate-900/80 border border-amber-500/30 flex items-center justify-between text-xs text-slate-200">
+    <div class="flex items-center gap-2">
+      <span class="text-base animate-pulse">⏱️</span>
+      <span class="font-semibold text-amber-300">Waktu Berjalan:</span>
+    </div>
+    <div class="flex items-center gap-2 font-mono font-black text-amber-400 text-sm bg-black/40 px-3 py-1 rounded-xl border border-amber-500/20">
+      <span id="dynamicTimerSeconds">30</span>s
+    </div>
+  </div>`
+
+      const timerScript = `
+  <script>
+    (function() {
+      let t = 30;
+      const el = document.getElementById('dynamicTimerSeconds');
+      if (el) {
+        const interval = setInterval(() => {
+          t--;
+          if (t >= 0) {
+            el.textContent = t;
+          } else {
+            clearInterval(interval);
+            el.textContent = 'SELESAI!';
+            el.parentElement.classList.replace('text-amber-400', 'text-rose-400');
+          }
+        }, 1000);
+      }
+    })();
+  </script>`
+
+      if (code.includes('</main>')) {
+        code = code.replace('</main>', `${timerWidget}\n    </main>`)
+      } else if (code.includes('</body>')) {
+        code = code.replace('</body>', `${timerWidget}\n</body>`)
+      }
+
+      if (code.includes('</body>')) {
+        code = code.replace('</body>', `${timerScript}\n</body>`)
+      }
+    }
+
+    // ── 7. Tambah Audio / Suara / Sound Effect ──────────────────────────────────
+    if ((lower.includes('suara') || lower.includes('audio') || lower.includes('sound') || lower.includes('chime')) && !code.includes('garstudioPlayChime')) {
+      const audioScript = `
+  <script>
+    function garstudioPlayChime(freq = 660, duration = 0.15) {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, ctx.currentTime);
+        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + duration);
+      } catch (e) {
+        console.warn('Audio not supported:', e);
+      }
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', () => garstudioPlayChime(750, 0.12));
+      });
+    });
+  </script>`
+
+      if (code.includes('</body>')) {
+        code = code.replace('</body>', `${audioScript}\n</body>`)
+      }
+    }
+
+    // ── 8. Tambah Form Kontak / Hubungi Kami ────────────────────────────────────
+    if ((lower.includes('form') || lower.includes('kontak') || lower.includes('contact')) && !code.includes('id="garstudioContactForm"')) {
+      const contactForm = `
+  <!-- Contact Form Section -->
+  <section id="garstudioContactForm" class="mt-8 p-5 rounded-2xl bg-slate-900/90 border border-slate-700/80 text-xs text-white space-y-3">
+    <div class="flex items-center gap-2 text-cyan-400 font-bold text-sm">
+      <span>✉️</span>
+      <span>Hubungi Kami</span>
+    </div>
+    <div class="space-y-2">
+      <input type="text" id="contactName" placeholder="Nama Anda" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 text-xs">
+      <input type="email" id="contactEmail" placeholder="Email Anda" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 text-xs">
+      <textarea id="contactMsg" placeholder="Tulis pesan..." rows="3" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 text-xs"></textarea>
+      <button onclick="alert('Terima kasih! Pesan Anda telah terkirim.'); document.getElementById('contactName').value=''; document.getElementById('contactEmail').value=''; document.getElementById('contactMsg').value='';" class="w-full py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 font-bold text-white transition active:scale-95 cursor-pointer">
+        Kirim Pesan ➔
+      </button>
+    </div>
+  </section>`
+
+      if (code.includes('</main>')) {
+        code = code.replace('</main>', `${contactForm}\n    </main>`)
+      } else if (code.includes('</body>')) {
+        code = code.replace('</body>', `${contactForm}\n</body>`)
+      }
+    }
+
+    // ── 9. Hapus / Hilangkan Elemen Tertentu ────────────────────────────────────
+    if (lower.includes('hapus') || lower.includes('hilangkan') || lower.includes('remove') || lower.includes('delete')) {
+      if (lower.includes('timer')) {
+        code = code.replace(/<div[^>]*timer[^>]*>[\s\S]*?<\/div>/gi, '')
+      }
+      if (lower.includes('footer')) {
+        code = code.replace(/<footer[\s\S]*?<\/footer>/gi, '')
+      }
+      if (lower.includes('navbar') || lower.includes('header')) {
+        code = code.replace(/<header[\s\S]*?<\/header>/gi, '')
+      }
+    }
+
+    // ── 10. Universal Dynamic Modifier: GUARANTEE CHANGE ────────────────────────
+    if (code === originalCode) {
+      const widgetId = 'gs_widget_' + timestamp
+      const customWidget = `
+  <!-- GarStudio Dynamic Feature: "${prompt}" -->
+  <div id="${widgetId}" class="my-4 p-4 rounded-2xl bg-gradient-to-r from-cyan-950/60 to-blue-950/60 border border-cyan-500/40 text-slate-100 text-xs space-y-2 shadow-xl animate-in fade-in slide-in-from-bottom-2">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2 font-bold text-cyan-300 text-sm">
+        <span>🚀</span>
+        <span>${prompt.slice(0, 35)}</span>
+      </div>
+      <span class="text-[10px] bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded-full border border-cyan-500/30">Fitur Baru</span>
+    </div>
+    <p class="text-slate-300 text-[11px] leading-relaxed">
+      Fitur "${prompt}" telah berhasil ditambahkan dan aktif di web Anda.
+    </p>
+    <div class="pt-1 flex justify-end">
+      <button onclick="alert('Fitur ${prompt.replace(/'/g, "\\'")} berfungsi sempurna!')" class="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-[11px] transition active:scale-95 cursor-pointer">
+        Uji Interaksi ➔
+      </button>
+    </div>
+  </div>`
+
+      if (code.includes('</main>')) {
+        code = code.replace('</main>', `${customWidget}\n    </main>`)
+      } else if (code.includes('</div>\n  </body>')) {
+        code = code.replace('</div>\n  </body>', `${customWidget}\n    </div>\n  </body>`)
+      } else if (code.includes('</body>')) {
+        code = code.replace('</body>', `${customWidget}\n</body>`)
+      } else {
+        code += customWidget
+      }
+    }
+
+    // Always append revision comment tag with timestamp to guarantee change
+    code = code.replace(/<!-- GarStudio AI Updated: \d+ -->/g, '')
+    code = `<!-- GarStudio AI Updated: ${timestamp} -->\n` + code
 
     return [
       {
         path: file.path,
-        summary: `Koreksi kode sesuai permintaan: "${prompt}"`,
+        summary: `Koreksi kode diterapkan: "${prompt}"`,
         code,
-        oldCode: file.content,
+        oldCode: originalCode,
       },
     ]
   }

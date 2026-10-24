@@ -27,6 +27,8 @@ export const LivePreview: React.FC<LivePreviewProps> = ({
   const [currentError, setCurrentError] = useState<PreviewError | null>(null)
   const [reloadTrigger, setReloadTrigger] = useState(0)
   const [previewSrcDoc, setPreviewSrcDoc] = useState('')
+  // Key for iframe — incremented to force full remount (guarantees preview always updates)
+  const [iframeKey, setIframeKey] = useState(0)
   const iframeRef = useRef<HTMLIFrameElement>(null)
 
   // Listen for intercepted errors from sandbox iframe via postMessage
@@ -128,11 +130,14 @@ export const LivePreview: React.FC<LivePreviewProps> = ({
     }
 
     setPreviewSrcDoc(html)
+    setIframeKey((k) => k + 1)
+    setCurrentError(null)
   }, [files, reloadTrigger])
 
   const handleRefresh = () => {
     setCurrentError(null)
     setReloadTrigger((v) => v + 1)
+    setIframeKey((k) => k + 1)
   }
 
   // Open preview in new window / full tab
@@ -265,6 +270,7 @@ export const LivePreview: React.FC<LivePreviewProps> = ({
           }`}
         >
           <iframe
+            key={iframeKey}
             ref={iframeRef}
             srcDoc={previewSrcDoc}
             title="Live Preview Sandbox"
