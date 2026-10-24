@@ -222,12 +222,18 @@ export const App: React.FC = () => {
   const handleLinkFolder = async () => {
     try {
       const { files: loadedFiles, folderName: name } = await FileSystemService.openLocalDirectory()
+      setFolderName(name)
+      setIsFolderGuideOpen(false)
+
       if (loadedFiles.length > 0) {
+        // Folder sudah berisi file — tampilkan semua file yang ada
         setFiles(loadedFiles)
         setActiveFileId(loadedFiles[0].id)
-        setFolderName(name)
-        setIsFolderGuideOpen(false)
-        alert(`Linked Android folder "${name}" with ${loadedFiles.length} files.`)
+      } else {
+        // Folder kosong — mulai dengan file index.html kosong yang baru
+        const blankFile = await FileSystemService.createNewFile('index.html', '', [])
+        setFiles([blankFile])
+        setActiveFileId(blankFile.id)
       }
     } catch (err: unknown) {
       if (err instanceof Error) {
