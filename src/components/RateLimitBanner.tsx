@@ -23,17 +23,17 @@ interface RateLimitBannerProps {
 
 const PROVIDER_CONFIG = {
   gemini: {
-    name: 'Google Gemini',
+    name: 'Gemini 3.8 Flash',
     color: 'blue',
-    icon: <Sparkles className="w-4 h-4" />,
+    icon: <img src="/icons/gemini.png" alt="Gemini" className="w-4 h-4 object-contain inline-block" />,
     upgradeUrl: 'https://aistudio.google.com/app/apikey',
     switchTo: ['claude', 'copilot'] as AIProvider[],
     freeLimit: '15 req/mnt, 1,500 req/hari',
   },
   claude: {
-    name: 'Anthropic Claude',
+    name: 'Claude Sonnet 4.5',
     color: 'amber',
-    icon: <Cpu className="w-4 h-4" />,
+    icon: <img src="/icons/claude.png" alt="Claude" className="w-4 h-4 object-contain inline-block" />,
     upgradeUrl: 'https://console.anthropic.com/settings/billing',
     switchTo: ['gemini', 'copilot'] as AIProvider[],
     freeLimit: '~5 req/mnt (free tier)',
@@ -41,7 +41,7 @@ const PROVIDER_CONFIG = {
   copilot: {
     name: 'GitHub Copilot',
     color: 'purple',
-    icon: <Bot className="w-4 h-4" />,
+    icon: <img src="/icons/copilot.png" alt="Copilot" className="w-4 h-4 object-contain inline-block rounded-full" />,
     upgradeUrl: 'https://github.com/features/copilot',
     switchTo: ['gemini', 'claude'] as AIProvider[],
     freeLimit: '2,000 req/bln (free tier)',

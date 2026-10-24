@@ -47,39 +47,39 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <button
                 type="button"
                 onClick={() => onUpdateSettings({ aiProvider: 'gemini' })}
-                className={`py-2 px-2 rounded-lg flex flex-col items-center justify-center gap-1 text-[10px] font-semibold transition ${
+                className={`py-2 px-2 rounded-lg flex flex-col items-center justify-center gap-1.5 text-[10px] font-semibold transition ${
                   settings.aiProvider === 'gemini'
                     ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
                 }`}
               >
-                <Sparkles className="w-4 h-4 text-cyan-300" />
+                <img src="/icons/gemini.png" alt="Gemini" className="w-5 h-5 object-contain" />
                 <span>Gemini</span>
               </button>
               {/* Claude */}
               <button
                 type="button"
                 onClick={() => onUpdateSettings({ aiProvider: 'claude' })}
-                className={`py-2 px-2 rounded-lg flex flex-col items-center justify-center gap-1 text-[10px] font-semibold transition ${
+                className={`py-2 px-2 rounded-lg flex flex-col items-center justify-center gap-1.5 text-[10px] font-semibold transition ${
                   settings.aiProvider === 'claude'
                     ? 'bg-gradient-to-br from-amber-600 to-orange-600 text-white shadow-md'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
                 }`}
               >
-                <Cpu className="w-4 h-4 text-amber-300" />
+                <img src="/icons/claude.png" alt="Claude" className="w-5 h-5 object-contain" />
                 <span>Claude</span>
               </button>
               {/* GitHub Copilot */}
               <button
                 type="button"
                 onClick={() => onUpdateSettings({ aiProvider: 'copilot' })}
-                className={`py-2 px-2 rounded-lg flex flex-col items-center justify-center gap-1 text-[10px] font-semibold transition ${
+                className={`py-2 px-2 rounded-lg flex flex-col items-center justify-center gap-1.5 text-[10px] font-semibold transition ${
                   settings.aiProvider === 'copilot'
                     ? 'bg-gradient-to-br from-purple-600 to-violet-700 text-white shadow-md'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
                 }`}
               >
-                <Bot className="w-4 h-4 text-purple-300" />
+                <img src="/icons/copilot.png" alt="Copilot" className="w-5 h-5 object-contain rounded-full bg-white/10" />
                 <span>Copilot</span>
               </button>
             </div>
@@ -89,8 +89,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           {settings.aiProvider === 'gemini' && (
             <div className="p-3 rounded-xl bg-slate-900/90 border border-blue-900/40 space-y-3">
               <div className="flex items-center justify-between">
-                <label className="flex items-center gap-1.5 font-semibold text-cyan-300">
-                  <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                <label className="flex items-center gap-2 font-semibold text-cyan-300">
+                  <img src="/icons/gemini.png" alt="Gemini" className="w-4 h-4 object-contain" />
                   <span>Gemini API Key</span>
                 </label>
                 <a
@@ -135,8 +135,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           {settings.aiProvider === 'claude' && (
             <div className="p-3 rounded-xl bg-slate-900/90 border border-amber-900/40 space-y-3">
               <div className="flex items-center justify-between">
-                <label className="flex items-center gap-1.5 font-semibold text-amber-300">
-                  <Cpu className="w-3.5 h-3.5 text-amber-400" />
+                <label className="flex items-center gap-2 font-semibold text-amber-300">
+                  <img src="/icons/claude.png" alt="Claude" className="w-4 h-4 object-contain" />
                   <span>Claude (Anthropic) API Key</span>
                 </label>
                 <a
@@ -179,8 +179,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           {settings.aiProvider === 'copilot' && (
             <div className="p-3 rounded-xl bg-slate-900/90 border border-purple-900/40 space-y-3">
               <div className="flex items-center justify-between">
-                <label className="flex items-center gap-1.5 font-semibold text-purple-300">
-                  <Bot className="w-3.5 h-3.5 text-purple-400" />
+                <label className="flex items-center gap-2 font-semibold text-purple-300">
+                  <img src="/icons/copilot.png" alt="Copilot" className="w-4 h-4 object-contain rounded-full" />
                   <span>GitHub Token (Copilot)</span>
                 </label>
                 <a
