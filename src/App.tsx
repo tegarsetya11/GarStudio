@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { onAuthChange, signOutUser } from './lib/firebase'
 import type {
   ActivePanel,
   AIMessage,
@@ -66,6 +67,7 @@ export const App: React.FC = () => {
 
   // 2-Page Flow: User Session, Folder Guide Modal, and Tutorial Modal
   const [currentUser, setCurrentUser] = useState<UserSession | null>(() => {
+    // Restore from localStorage as initial state (will be overwritten by Firebase listener)
     const saved = localStorage.getItem('garstudio_user_session')
     if (saved) {
       try {
@@ -76,6 +78,40 @@ export const App: React.FC = () => {
     }
     return null
   })
+
+  // Firebase Auth state listener — runs on mount and stays active
+  useEffect(() => {
+    const unsubscribe = onAuthChange((firebaseUser) => {
+      if (firebaseUser) {
+        // User logged in via Firebase — sync to our session format
+        const saved = localStorage.getItem('garstudio_user_session')
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved)
+            if (parsed.id === firebaseUser.uid) {
+              setCurrentUser(parsed)
+              return
+            }
+          } catch { /* ignore */ }
+        }
+        // Build session from Firebase user if localStorage doesn't match
+        const session: UserSession = {
+          id: firebaseUser.uid,
+          name: firebaseUser.displayName || 'User',
+          email: firebaseUser.email || '',
+          provider: firebaseUser.providerData[0]?.providerId?.includes('github') ? 'github' : 'google',
+          avatarUrl: firebaseUser.photoURL || '',
+        }
+        localStorage.setItem('garstudio_user_session', JSON.stringify(session))
+        setCurrentUser(session)
+      } else {
+        // Firebase says user is not logged in
+        localStorage.removeItem('garstudio_user_session')
+        setCurrentUser(null)
+      }
+    })
+    return () => unsubscribe()
+  }, [])
   const [isFolderGuideOpen, setIsFolderGuideOpen] = useState(false)
   const [isTutorialOpen, setIsTutorialOpen] = useState(false)
 
@@ -346,7 +382,10 @@ export const App: React.FC = () => {
     }
   }
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await signOutUser() // Firebase sign out
+    } catch { /* ignore */ }
     localStorage.removeItem('garstudio_user_session')
     setCurrentUser(null)
   }
