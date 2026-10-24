@@ -129,11 +129,11 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             type="button"
             onClick={() => setShowExitModal(true)}
-            title="Keluar / Kembali ke Beranda"
+            title="Kembali ke Beranda"
             className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-600 hover:bg-red-500 active:bg-red-700 text-white font-bold text-[11px] shadow-sm shadow-red-950/40 border border-red-500/50 transition active:scale-95 cursor-pointer ml-1"
           >
             <LogOut className="w-3.5 h-3.5" />
-            <span>Keluar</span>
+            <span>Beranda</span>
           </button>
         )}
       </div>
