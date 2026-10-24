@@ -163,9 +163,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   onChange={(e) => onUpdateSettings({ claudeModel: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500"
                 >
-                  <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet (State-of-the-Art)</option>
-                  <option value="claude-3-5-haiku-20241022">Claude 3.5 Haiku (Lightning Fast)</option>
-                  <option value="claude-3-7-sonnet-20250219">Claude 3.7 Sonnet (Hybrid Reasoning)</option>
+                  <option value="claude-sonnet-4-5">⚡ Claude Sonnet 4.5 (Default — Flagship Reasoning & Coding)</option>
+                  <option value="claude-3-7-sonnet-20250219">🧠 Claude 3.7 Sonnet (Hybrid Reasoning)</option>
+                  <option value="claude-3-5-sonnet-20241022">🔥 Claude 3.5 Sonnet (Stabil)</option>
+                  <option value="claude-3-5-haiku-20241022">⚡ Claude 3.5 Haiku (Lightning Fast)</option>
                 </select>
               </div>
               <div className="text-[10px] text-slate-500 bg-slate-950 rounded-lg px-2.5 py-1.5 border border-slate-800">

@@ -92,7 +92,7 @@ async function callClaudeAPI(
       'anthropic-dangerous-direct-browser-access': 'true',
     },
     body: JSON.stringify({
-      model: model || 'claude-3-5-sonnet-20241022',
+      model: model || 'claude-sonnet-4-5',
       max_tokens: 4096,
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }],
@@ -193,7 +193,7 @@ Respond ONLY with a valid JSON object matching this schema without markdown fenc
 
       if (provider === 'claude') {
         if (!claudeKey) return { plan: this.mockPlan(prompt, 'Claude AI') }
-        text = await callClaudeAPI(claudeKey, claudeModel || 'claude-3-5-sonnet-20241022', systemPrompt, prompt)
+        text = await callClaudeAPI(claudeKey, claudeModel || 'claude-sonnet-4-5', systemPrompt, prompt)
       } else if (provider === 'copilot') {
         if (!copilotToken) return { plan: this.mockPlan(prompt, 'GitHub Copilot') }
         text = await callCopilotAPI(copilotToken, copilotModel || 'gpt-4o', systemPrompt, prompt)
@@ -257,7 +257,7 @@ Return ONLY valid JSON.`
 
       if (provider === 'claude') {
         if (!claudeKey) return { changes: this.mockCodeGeneration(currentFiles) }
-        text = await callClaudeAPI(claudeKey, claudeModel || 'claude-3-5-sonnet-20241022', sysPrompt, prompt)
+        text = await callClaudeAPI(claudeKey, claudeModel || 'claude-sonnet-4-5', sysPrompt, prompt)
       } else if (provider === 'copilot') {
         if (!copilotToken) return { changes: this.mockCodeGeneration(currentFiles) }
         text = await callCopilotAPI(copilotToken, copilotModel || 'gpt-4o', sysPrompt, prompt)
@@ -322,7 +322,7 @@ Berikan respons yang membantu, ramah, dan ringkas. Jika kamu memberikan perubaha
           return {
             message: `💬 [Claude - Interaktif]: Saya menerima: "${prompt}". Tambahkan API Key Claude di Settings untuk respons AI.`,
           }
-        text = await callClaudeAPI(claudeKey, claudeModel || 'claude-3-5-sonnet-20241022', systemPrompt, prompt)
+        text = await callClaudeAPI(claudeKey, claudeModel || 'claude-sonnet-4-5', systemPrompt, prompt)
       } else if (provider === 'copilot') {
         if (!copilotToken)
           return {
@@ -411,7 +411,7 @@ Return ONLY a JSON array of FileChange objects (no markdown, no explanation outs
     try {
       let text = ''
       if (provider === 'claude') {
-        text = await callClaudeAPI(claudeKey, claudeModel || 'claude-3-5-sonnet-20241022', sysPrompt, prompt)
+        text = await callClaudeAPI(claudeKey, claudeModel || 'claude-sonnet-4-5', sysPrompt, prompt)
       } else if (provider === 'copilot') {
         text = await callCopilotAPI(copilotToken, copilotModel || 'gpt-4o', sysPrompt, prompt)
       } else {
