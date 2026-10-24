@@ -41,7 +41,7 @@ const PROVIDER_CONFIG = {
   copilot: {
     name: 'GitHub Copilot',
     color: 'purple',
-    icon: <img src="/icons/copilot.png" alt="Copilot" className="w-4 h-4 object-contain inline-block rounded-full" />,
+    icon: <img src="/icons/copilot.png" alt="Copilot" className="w-4 h-4 object-contain inline-block" />,
     upgradeUrl: 'https://github.com/features/copilot',
     switchTo: ['gemini', 'claude'] as AIProvider[],
     freeLimit: '2,000 req/bln (free tier)',

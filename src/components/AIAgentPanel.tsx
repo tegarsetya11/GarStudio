@@ -144,7 +144,7 @@ export const AIAgentPanel: React.FC<AIAgentPanelProps> = ({
             {aiProvider === 'claude' ? (
               <img src="/icons/claude.png" alt="Claude" className="w-5 h-5 object-contain" />
             ) : aiProvider === 'copilot' ? (
-              <img src="/icons/copilot.png" alt="Copilot" className="w-5 h-5 object-contain rounded-full" />
+              <img src="/icons/copilot.png" alt="Copilot" className="w-5 h-5 object-contain" />
             ) : (
               <img src="/icons/gemini.png" alt="Gemini" className="w-5 h-5 object-contain" />
             )}
@@ -214,7 +214,7 @@ export const AIAgentPanel: React.FC<AIAgentPanelProps> = ({
                   : 'text-slate-400 hover:text-white'
               }`}
             >
-              <img src="/icons/copilot.png" alt="" className="w-3.5 h-3.5 object-contain rounded-full" />
+              <img src="/icons/copilot.png" alt="" className="w-3.5 h-3.5 object-contain" />
               <span>Copilot</span>
             </button>
           </div>

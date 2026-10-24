@@ -79,7 +79,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
                 }`}
               >
-                <img src="/icons/copilot.png" alt="Copilot" className="w-5 h-5 object-contain rounded-full bg-white/10" />
+                <img src="/icons/copilot.png" alt="Copilot" className="w-5 h-5 object-contain" />
                 <span>Copilot</span>
               </button>
             </div>
@@ -180,7 +180,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <div className="p-3 rounded-xl bg-slate-900/90 border border-purple-900/40 space-y-3">
               <div className="flex items-center justify-between">
                 <label className="flex items-center gap-2 font-semibold text-purple-300">
-                  <img src="/icons/copilot.png" alt="Copilot" className="w-4 h-4 object-contain rounded-full" />
+                  <img src="/icons/copilot.png" alt="Copilot" className="w-4 h-4 object-contain" />
                   <span>GitHub Token (Copilot)</span>
                 </label>
                 <a
