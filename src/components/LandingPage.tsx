@@ -71,10 +71,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
       {/* Top Navbar */}
       <header className="px-5 py-4 flex items-center justify-between border-b border-slate-800/60 bg-[#0d1322]/80 backdrop-blur-md sticky top-0 z-30">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-cyan-500/20">
-            <Sparkles className="w-4 h-4" />
-          </div>
-          <span className="font-bold text-base bg-gradient-to-r from-cyan-300 via-sky-300 to-indigo-300 bg-clip-text text-transparent">
+          <img src="/garstudio-icon.png" alt="GarStudio" className="w-8 h-8 object-contain" />
+          <span className="font-extrabold text-base bg-gradient-to-r from-cyan-400 via-sky-300 to-indigo-300 bg-clip-text text-transparent tracking-tight">
             GarStudio
           </span>
         </div>
@@ -100,6 +98,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
 
       {/* Hero Section */}
       <main className="flex-1 max-w-4xl mx-auto px-5 py-10 sm:py-16 flex flex-col items-center text-center justify-center space-y-8">
+        {/* 3D Brand Logo Visual */}
+        <div className="relative group flex items-center justify-center">
+          <div className="absolute inset-0 bg-cyan-500/25 rounded-full blur-3xl -z-10" />
+          <img
+            src="/garstudio-logo.png"
+            alt="GarStudio Logo"
+            className="w-44 sm:w-60 h-auto object-contain drop-shadow-[0_15px_30px_rgba(6,182,212,0.35)]"
+          />
+        </div>
+
         {/* Badge */}
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-medium animate-pulse">
           <Smartphone className="w-3.5 h-3.5" />

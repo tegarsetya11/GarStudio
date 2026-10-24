@@ -10,7 +10,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'garstudio-logo.svg', 'apple-touch-icon.png'],
+      includeAssets: ['favicon.png', 'garstudio-logo.png', 'garstudio-icon.png', 'icon-192.png', 'icon-512.png'],
       manifest: {
         name: 'GarStudio - Mobile AI Web IDE',
         short_name: 'GarStudio',
@@ -21,15 +21,15 @@ export default defineConfig({
         orientation: 'any',
         icons: [
           {
-            src: '/icon-192.svg',
+            src: '/icon-192.png',
             sizes: '192x192',
-            type: 'image/svg+xml',
+            type: 'image/png',
             purpose: 'any'
           },
           {
-            src: '/icon-512.svg',
+            src: '/icon-512.png',
             sizes: '512x512',
-            type: 'image/svg+xml',
+            type: 'image/png',
             purpose: 'any maskable'
           }
         ]

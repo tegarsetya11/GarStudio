@@ -38,10 +38,8 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Left: VS Code Brand & Pseudo-Menus */}
       <div className="flex items-center gap-2">
         <div className="flex items-center gap-1.5 font-bold text-xs text-white">
-          <div className="w-5 h-5 rounded bg-[#007acc] flex items-center justify-center text-white text-[10px] shadow-sm">
-            <Sparkles className="w-3 h-3" />
-          </div>
-          <span className="hidden sm:inline bg-gradient-to-r from-cyan-300 to-indigo-300 bg-clip-text text-transparent">
+          <img src="/garstudio-icon.png" alt="GarStudio" className="w-5 h-5 object-contain" />
+          <span className="hidden sm:inline font-extrabold bg-gradient-to-r from-cyan-400 via-sky-300 to-indigo-300 bg-clip-text text-transparent tracking-tight">
             GarStudio
           </span>
         </div>
