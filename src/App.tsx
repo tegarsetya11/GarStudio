@@ -38,12 +38,21 @@ export const App: React.FC = () => {
   const [files, setFiles] = useState<WorkspaceFile[]>(() => {
     const saved = FileSystemService.loadFromLocalStorage()
     if (saved && saved.length > 0) {
-      const hasOldPraci = saved.some((f) => f.content && f.content.includes('PraciPulse'))
-      if (!hasOldPraci) {
+      // Filter out old PraciPulse or old starter "My Mobile Web App" content
+      const hasOldContent = saved.some(
+        (f) =>
+          (f.content && f.content.includes('PraciPulse')) ||
+          (f.content && f.content.includes('My Mobile Web App')) ||
+          (f.content && f.content.includes('GarStudio application initialized'))
+      )
+      if (!hasOldContent) {
         return saved
       }
+      // Clear old starter content from localStorage
+      FileSystemService.saveToLocalStorage([])
     }
-    return initialProjectFiles
+    // Default: empty workspace — no starter example files
+    return []
   })
   const [activeFileId, setActiveFileId] = useState<string>(() => {
     return files[0]?.id || ''
@@ -226,14 +235,13 @@ export const App: React.FC = () => {
       setIsFolderGuideOpen(false)
 
       if (loadedFiles.length > 0) {
-        // Folder sudah berisi file — tampilkan semua file yang ada
+        // Folder berisi file — tampilkan semua
         setFiles(loadedFiles)
         setActiveFileId(loadedFiles[0].id)
       } else {
-        // Folder kosong — mulai dengan file index.html kosong yang baru
-        const blankFile = await FileSystemService.createNewFile('index.html', '', [])
-        setFiles([blankFile])
-        setActiveFileId(blankFile.id)
+        // Folder kosong — workspace bersih seperti VS Code/Antigravity
+        setFiles([])
+        setActiveFileId('')
       }
     } catch (err: unknown) {
       if (err instanceof Error) {

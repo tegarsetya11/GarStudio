@@ -47,10 +47,21 @@ export const LivePreview: React.FC<LivePreviewProps> = ({
 
   // Build combined bundle for iframe sandbox
   useEffect(() => {
+    // Jika tidak ada file sama sekali — preview kosong/blank
+    if (files.length === 0) {
+      setPreviewSrcDoc('')
+      return
+    }
+
     const indexFile = files.find((f) => f.name === 'index.html' || f.path.endsWith('.html'))
-    let html = indexFile
-      ? indexFile.content
-      : `<!DOCTYPE html><html><body><h1 style="color:white;font-family:sans-serif;padding:20px;">No index.html found</h1></body></html>`
+
+    // Jika tidak ada file HTML atau isinya kosong — preview blank
+    if (!indexFile || !indexFile.content.trim()) {
+      setPreviewSrcDoc('')
+      return
+    }
+
+    let html = indexFile.content
 
     // Extract all CSS files
     const cssFiles = files.filter((f) => f.name.endsWith('.css'))
