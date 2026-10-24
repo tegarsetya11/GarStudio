@@ -9,8 +9,8 @@ import {
   ChevronDown,
   User,
   FolderOpen,
-  Cpu,
   ShieldCheck,
+  LogIn,
 } from 'lucide-react'
 import { GithubIcon } from './GithubIcon'
 import { GoogleIcon } from './GoogleIcon'
@@ -24,7 +24,9 @@ interface HeaderProps {
   onOpenGitHub: () => void
   onExport: () => void
   currentUser?: UserSession | null
+  onSignOut?: () => void
   onLogout?: () => void
+  onOpenLogin?: () => void
   onOpenTutorial?: () => void
 }
 
@@ -36,10 +38,13 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenGitHub,
   onExport,
   currentUser,
+  onSignOut,
   onLogout,
+  onOpenLogin,
   onOpenTutorial,
 }) => {
   const [showExitModal, setShowExitModal] = useState(false)
+  const [showSignOutModal, setShowSignOutModal] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
   const userMenuRef = useRef<HTMLDivElement>(null)
 
@@ -100,8 +105,8 @@ export const Header: React.FC<HeaderProps> = ({
           <GithubIcon className="w-3.5 h-3.5 text-slate-300" />
         </button>
 
-        {/* Google / User Account Button with Antigravity-Style Dropdown */}
-        {currentUser && (
+        {/* User Account / Login Button */}
+        {currentUser ? (
           <div className="relative" ref={userMenuRef}>
             <button
               type="button"
@@ -142,11 +147,11 @@ export const Header: React.FC<HeaderProps> = ({
               />
             </button>
 
-            {/* Antigravity Dropdown Menu */}
+            {/* Account Dropdown Menu */}
             {showUserMenu && (
               <div className="absolute right-0 top-full mt-2 w-72 bg-[#1b1b1e] border border-[#333338] rounded-2xl shadow-2xl shadow-black/80 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
 
-                {/* Profile Header (Antigravity Style) */}
+                {/* Profile Header (Clean without Engine/Antigravity bar) */}
                 <div className="p-3.5 bg-gradient-to-b from-[#25252b] to-[#1e1e24] border-b border-[#2d2d34]">
                   <div className="flex items-center gap-3">
                     <div className="relative shrink-0">
@@ -188,20 +193,9 @@ export const Header: React.FC<HeaderProps> = ({
                       </div>
                     </div>
                   </div>
-
-                  {/* Antigravity AI Engine status bar */}
-                  <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center justify-between text-[10px]">
-                    <div className="flex items-center gap-1.5 text-slate-400">
-                      <Cpu className="w-3 h-3 text-cyan-400" />
-                      <span>Engine: <span className="text-slate-200 font-medium">Gemini 3.8 Flash</span></span>
-                    </div>
-                    <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono text-[9px]">
-                      Antigravity AI
-                    </span>
-                  </div>
                 </div>
 
-                {/* Antigravity Options List */}
+                {/* Options List */}
                 <div className="p-1.5 space-y-0.5">
                   <button
                     type="button"
@@ -271,22 +265,36 @@ export const Header: React.FC<HeaderProps> = ({
 
                   <div className="my-1 border-t border-[#2d2d34]" />
 
-                  {/* Sign out */}
+                  {/* Sign out from account (stays in coding workspace) */}
                   <button
                     type="button"
-                    onClick={() => { setShowUserMenu(false); setShowExitModal(true) }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12px] text-red-400 hover:bg-red-950/40 hover:text-red-300 transition text-left cursor-pointer"
+                    onClick={() => {
+                      setShowUserMenu(false)
+                      setShowSignOutModal(true)
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12px] text-amber-400 hover:bg-amber-950/40 hover:text-amber-300 transition text-left cursor-pointer"
                   >
-                    <LogOut className="w-4 h-4 text-red-400" />
+                    <LogOut className="w-4 h-4 text-amber-400" />
                     <div className="flex-1">
-                      <div className="font-medium">Keluar Akun / Kembali ke Beranda</div>
-                      <div className="text-[10px] text-red-400/70">Keluar dari sesi dan simpan perubahan</div>
+                      <div className="font-medium">Keluar Akun (Sign Out)</div>
+                      <div className="text-[10px] text-slate-400">Keluar akun & tetap di halaman coding</div>
                     </div>
                   </button>
                 </div>
               </div>
             )}
           </div>
+        ) : (
+          /* Login button when signed out */
+          <button
+            type="button"
+            onClick={onOpenLogin}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold text-[11px] shadow-sm transition active:scale-95 cursor-pointer"
+            title="Masuk dengan Google atau GitHub"
+          >
+            <GoogleIcon className="w-3.5 h-3.5" />
+            <span>Masuk</span>
+          </button>
         )}
 
         {/* Export Files (hidden on mobile — now also in dropdown) */}
@@ -318,7 +326,7 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         )}
 
-        {/* Tombol Beranda (Panel Kotak Merah Jelas) */}
+        {/* Tombol Beranda (Kembali ke Halaman Utama) */}
         {onLogout && (
           <button
             type="button"
@@ -331,6 +339,56 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         )}
       </div>
+
+      {/* Modal Konfirmasi: Sign Out (Tetap di Halaman Coding) */}
+      {showSignOutModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-[#18181b] border border-slate-800 rounded-2xl max-w-sm w-full p-5 shadow-2xl text-slate-200 space-y-4 relative">
+            <button
+              onClick={() => setShowSignOutModal(false)}
+              className="absolute top-4 right-4 p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition"
+              title="Tutup"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shrink-0">
+                <LogOut className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-sm text-white">Keluar dari Akun?</h3>
+                <p className="text-[11px] text-slate-400">Sign out akun Google / GitHub</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed bg-slate-900/60 p-3 rounded-xl border border-slate-800/80">
+              Anda akan keluar dari sesi akun, namun <strong>tetap berada di halaman coding</strong>. Anda tetap dapat mengedit kode, namun fitur <strong>AI Agent akan dinonaktifkan</strong> hingga Anda masuk kembali.
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setShowSignOutModal(false)}
+                className="flex-1 py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-slate-200 text-xs font-semibold transition border border-slate-700/60 flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowSignOutModal(false)
+                  onSignOut?.()
+                }}
+                className="flex-1 py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 active:from-amber-800 active:to-amber-900 text-white text-xs font-semibold shadow-lg shadow-amber-950/50 transition flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Keluar Akun (Tetap di Coding)</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal Konfirmasi: Kembali ke Beranda */}
       {showExitModal && (
@@ -355,7 +413,7 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
 
             <p className="text-xs text-slate-300 leading-relaxed bg-slate-900/60 p-3 rounded-xl border border-slate-800/80">
-              Apakah Anda yakin ingin keluar dari editor? Pastikan kode sudah tersimpan agar progres Anda tetap aman.
+              Apakah Anda yakin ingin keluar dari editor dan kembali ke halaman Beranda? Pastikan kode sudah tersimpan agar progres Anda aman.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-2 pt-1">
@@ -364,7 +422,7 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={() => setShowExitModal(false)}
                 className="flex-1 py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-slate-200 text-xs font-semibold transition border border-slate-700/60 flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                Batal / Lanjutkan Proyek
+                Batal / Lanjutkan
               </button>
               <button
                 type="button"

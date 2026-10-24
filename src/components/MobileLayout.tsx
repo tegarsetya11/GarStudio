@@ -10,7 +10,7 @@ import {
   GripHorizontal,
   Maximize2,
 } from 'lucide-react'
-import type { AIMessage, AIMode, AIProvider, AIStage, FileChange, PreviewError, WorkspaceFile } from '../types'
+import type { AIMessage, AIMode, AIProvider, AIStage, FileChange, PreviewError, UserSession, WorkspaceFile } from '../types'
 import { CodeEditor } from './CodeEditor'
 import { LivePreview } from './LivePreview'
 import { AIAgentPanel } from './AIAgentPanel'
@@ -36,6 +36,9 @@ interface MobileLayoutProps {
   folderLinked?: boolean
   folderName?: string
   onOpenFolder?: () => void
+  currentUser?: UserSession | null
+  onLoginWithGoogle?: () => void
+  onLoginWithGitHub?: () => void
 }
 
 type PanelFocus = 'editor' | 'preview' | 'agent' | 'split'
@@ -61,6 +64,9 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
   folderLinked = false,
   folderName,
   onOpenFolder,
+  currentUser,
+  onLoginWithGoogle,
+  onLoginWithGitHub,
 }) => {
   const [codeVisible, setCodeVisible] = useState(true)
   const [internalPreviewVisible, setInternalPreviewVisible] = useState(true)
@@ -431,6 +437,9 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
               githubToken={githubToken}
               folderLinked={folderLinked}
               onOpenFolder={onOpenFolder}
+              currentUser={currentUser}
+              onLoginWithGoogle={onLoginWithGoogle}
+              onLoginWithGitHub={onLoginWithGitHub}
             />
           </div>
         </div>

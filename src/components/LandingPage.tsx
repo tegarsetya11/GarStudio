@@ -8,6 +8,7 @@ import type { User } from 'firebase/auth'
 
 interface LandingPageProps {
   onLoginSuccess: (session: UserSession) => void
+  onContinueGuest?: () => void
 }
 
 // Convert Firebase User → UserSession
@@ -19,7 +20,7 @@ const toUserSession = (user: User, provider: 'github' | 'google'): UserSession =
   avatarUrl: user.photoURL || '',
 })
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess, onContinueGuest }) => {
   const [isTutorialOpen, setIsTutorialOpen] = useState(false)
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
   const [isLoading, setIsLoading] = useState<'github' | 'google' | null>(null)
@@ -142,12 +143,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
           {/* Tombol 2: Ke Halaman Tutorial */}
           <button
             onClick={() => setIsTutorialOpen(true)}
-            className="w-full sm:w-auto px-6 py-3.5 bg-[#141b2d] hover:bg-[#1a233b] border border-slate-700/80 hover:border-cyan-500/50 text-slate-200 hover:text-white font-semibold rounded-2xl text-sm flex items-center justify-center gap-2 transition active:scale-95"
+            className="w-full sm:w-auto px-6 py-3.5 bg-[#141b2d] hover:bg-[#1a233b] border border-slate-700/80 hover:border-cyan-500/50 text-slate-200 hover:text-white font-semibold rounded-2xl text-sm flex items-center justify-center gap-2 transition active:scale-95 cursor-pointer"
           >
             <BookOpen className="w-4 h-4 text-cyan-400" />
             <span>Panduan & Tutorial</span>
           </button>
         </div>
+
+        {onContinueGuest && (
+          <button
+            onClick={onContinueGuest}
+            className="text-xs text-slate-400 hover:text-cyan-300 transition underline underline-offset-4 pt-1 cursor-pointer"
+          >
+            Mulai Coding Langsung (Mode Tamu / Tanpa Login) ➔
+          </button>
+        )}
 
         {/* Feature Grid Highlights */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 w-full pt-8 text-left">

@@ -15,10 +15,11 @@ import {
   GitBranch,
   FolderOpen,
 } from 'lucide-react'
-import type { AIMessage, AIMode, AIProvider, AIStage, FileChange, WorkspaceFile } from '../types'
+import type { AIMessage, AIMode, AIProvider, AIStage, FileChange, UserSession, WorkspaceFile } from '../types'
 import { AIAgentService } from '../services/aiAgentService'
 import { GitHubService } from '../services/githubService'
 import { GithubIcon } from './GithubIcon'
+import { GoogleIcon } from './GoogleIcon'
 
 interface AIAgentPanelProps {
   messages: AIMessage[]
@@ -36,6 +37,9 @@ interface AIAgentPanelProps {
   githubToken?: string
   folderLinked?: boolean
   onOpenFolder?: () => void
+  currentUser?: UserSession | null
+  onLoginWithGoogle?: () => void
+  onLoginWithGitHub?: () => void
 }
 
 export const AIAgentPanel: React.FC<AIAgentPanelProps> = ({
@@ -52,6 +56,9 @@ export const AIAgentPanel: React.FC<AIAgentPanelProps> = ({
   githubToken = '',
   folderLinked = false,
   onOpenFolder,
+  currentUser,
+  onLoginWithGoogle,
+  onLoginWithGitHub,
 }) => {
   const [inputPrompt, setInputPrompt] = useState('')
   const [ghRepoName, setGhRepoName] = useState('garstudio-app')
@@ -465,10 +472,16 @@ export const AIAgentPanel: React.FC<AIAgentPanelProps> = ({
         {quickPrompts.map((qp, i) => (
           <button
             key={i}
-            onClick={() => folderLinked && onSendPrompt(qp)}
-            disabled={!folderLinked}
+            onClick={() => {
+              if (!currentUser) {
+                onLoginWithGoogle?.()
+                return
+              }
+              if (folderLinked) onSendPrompt(qp)
+            }}
+            disabled={!currentUser || !folderLinked}
             className={`px-2.5 py-1 text-[11px] rounded bg-[#252526] border border-[#333333] whitespace-nowrap transition ${
-              folderLinked
+              currentUser && folderLinked
                 ? 'text-slate-300 hover:bg-[#2a2d2e] active:scale-95 cursor-pointer'
                 : 'text-slate-600 cursor-not-allowed opacity-50'
             }`}
@@ -478,8 +491,39 @@ export const AIAgentPanel: React.FC<AIAgentPanelProps> = ({
         ))}
       </div>
 
-      {/* ⚠️ Folder Warning Banner — tampil ketika belum ada folder */}
-      {!folderLinked && (
+      {/* 🔒 Login Requirement Banner — tampil ketika user belum login Google/GitHub */}
+      {!currentUser && (
+        <div className="mx-2.5 mb-2 mt-1.5 p-3.5 rounded-2xl bg-gradient-to-br from-[#241733] via-[#1d162d] to-[#161324] border border-purple-500/40 flex flex-col gap-2.5 shadow-xl">
+          <div className="flex items-center gap-2 text-purple-300 font-bold text-xs">
+            <span className="text-base leading-none">🔒</span>
+            <span>Login Diperlukan untuk Menggunakan AI Agent</span>
+          </div>
+          <p className="text-[10px] text-purple-200/80 leading-relaxed">
+            Silakan masuk dengan akun Google atau GitHub Anda agar dapat menggunakan AI Agent untuk merencanakan, membuat web, dan koreksi otomatis.
+          </p>
+          <div className="flex items-center gap-2 pt-0.5">
+            <button
+              type="button"
+              onClick={onLoginWithGoogle}
+              className="flex-1 py-1.5 px-3 rounded-xl bg-white hover:bg-slate-100 text-slate-900 font-bold text-[11px] flex items-center justify-center gap-1.5 transition active:scale-95 shadow cursor-pointer"
+            >
+              <GoogleIcon className="w-3.5 h-3.5" />
+              <span>Google Login</span>
+            </button>
+            <button
+              type="button"
+              onClick={onLoginWithGitHub}
+              className="flex-1 py-1.5 px-3 rounded-xl bg-[#24292e] hover:bg-[#2f363d] text-white font-bold text-[11px] flex items-center justify-center gap-1.5 border border-slate-700 transition active:scale-95 shadow cursor-pointer"
+            >
+              <GithubIcon className="w-3.5 h-3.5" />
+              <span>GitHub Login</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ⚠️ Folder Warning Banner — tampil ketika sudah login tapi belum ada folder */}
+      {currentUser && !folderLinked && (
         <div className="mx-2.5 mb-2 mt-1 p-3 rounded-xl bg-amber-950/70 border border-amber-600/40 flex flex-col gap-2 shadow-inner">
           <div className="flex items-center gap-2 text-amber-300 font-semibold text-[11px]">
             <span className="text-base leading-none">📁</span>
@@ -511,20 +555,24 @@ export const AIAgentPanel: React.FC<AIAgentPanelProps> = ({
           value={inputPrompt}
           onChange={(e) => setInputPrompt(e.target.value)}
           placeholder={
-            !folderLinked
+            !currentUser
+              ? '🔒 Masuk dengan Google atau GitHub untuk menggunakan AI Agent...'
+              : !folderLinked
               ? '⚠️ Hubungkan folder dulu sebelum menggunakan AI...'
               : 'Tulis web impian atau koreksi kode (contoh: buat web quiz, ubah warna background, tambah timer)...'
           }
-          disabled={!folderLinked || aiStage === 'planning' || aiStage === 'generating'}
+          disabled={!currentUser || !folderLinked || aiStage === 'planning' || aiStage === 'generating'}
           className={`flex-1 bg-[#252526] border rounded-xl px-3 py-2 text-xs placeholder-slate-500 focus:outline-none transition ${
-            !folderLinked
+            !currentUser
+              ? 'border-purple-800/40 text-slate-500 cursor-not-allowed'
+              : !folderLinked
               ? 'border-amber-700/40 text-slate-500 cursor-not-allowed'
               : 'border-[#3c3c3c] text-slate-100 focus:border-[#007acc]'
           }`}
         />
         <button
           type="submit"
-          disabled={!folderLinked || !inputPrompt.trim() || aiStage === 'planning' || aiStage === 'generating'}
+          disabled={!currentUser || !folderLinked || !inputPrompt.trim() || aiStage === 'planning' || aiStage === 'generating'}
           className={`p-2.5 rounded-xl text-white disabled:opacity-40 transition active:scale-95 shadow cursor-pointer ${
             aiProvider === 'claude'
               ? 'bg-amber-600 hover:bg-amber-500'

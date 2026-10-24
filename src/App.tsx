@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { onAuthChange, signOutUser } from './lib/firebase'
+import { onAuthChange, signOutUser, signInWithGoogle, signInWithGitHub } from './lib/firebase'
 import type {
   ActivePanel,
   AIMessage,
@@ -88,7 +88,13 @@ export const App: React.FC = () => {
     return null
   })
 
-  // Firebase Auth state listener — runs on mount and stays active
+  // Workspace visibility (stays in coding workspace even after signing out)
+  const [inWorkspace, setInWorkspace] = useState<boolean>(() => {
+    return (
+      !!localStorage.getItem('garstudio_user_session') ||
+      localStorage.getItem('garstudio_in_workspace') === 'true'
+    )
+  })
   useEffect(() => {
     const unsubscribe = onAuthChange((firebaseUser) => {
       if (firebaseUser) {
@@ -423,23 +429,88 @@ export const App: React.FC = () => {
 
   const handleLoginSuccess = (session: UserSession) => {
     setCurrentUser(session)
+    setInWorkspace(true)
+    localStorage.setItem('garstudio_in_workspace', 'true')
     // Show folder guide modal before starting coding if no folder linked yet
     if (!folderName) {
       setIsFolderGuideOpen(true)
     }
   }
 
-  const handleLogout = async () => {
+  // Sign out dari akun Google/GitHub tapi TETAP DI HALAMAN CODING
+  const handleSignOut = async () => {
     try {
       await signOutUser() // Firebase sign out
     } catch { /* ignore */ }
     localStorage.removeItem('garstudio_user_session')
     setCurrentUser(null)
+    // Tetap di workspace halaman coding!
+    setInWorkspace(true)
+    localStorage.setItem('garstudio_in_workspace', 'true')
   }
 
-  // If user is not logged in, render Page 1 (LandingPage / Beranda)
-  if (!currentUser) {
-    return <LandingPage onLoginSuccess={handleLoginSuccess} />
+  // Kembali ke Beranda (Landing Page)
+  const handleGoToHome = () => {
+    localStorage.removeItem('garstudio_in_workspace')
+    setInWorkspace(false)
+  }
+
+  // Quick login dari dalam halaman coding
+  const handleLoginWithGoogle = async () => {
+    try {
+      const fbUser = await signInWithGoogle()
+      const session: UserSession = {
+        id: fbUser.uid,
+        name: fbUser.displayName || 'Google User',
+        email: fbUser.email || '',
+        provider: 'google',
+        avatarUrl: fbUser.photoURL || '',
+      }
+      localStorage.setItem('garstudio_user_session', JSON.stringify(session))
+      setCurrentUser(session)
+      setInWorkspace(true)
+      localStorage.setItem('garstudio_in_workspace', 'true')
+    } catch (err: unknown) {
+      const code = (err as { code?: string })?.code || ''
+      if (code !== 'auth/popup-closed-by-user' && code !== 'auth/cancelled-popup-request') {
+        alert('Gagal login Google. Pastikan popup browser diizinkan.')
+      }
+    }
+  }
+
+  const handleLoginWithGitHub = async () => {
+    try {
+      const fbUser = await signInWithGitHub()
+      const session: UserSession = {
+        id: fbUser.uid,
+        name: fbUser.displayName || 'GitHub User',
+        email: fbUser.email || '',
+        provider: 'github',
+        avatarUrl: fbUser.photoURL || '',
+      }
+      localStorage.setItem('garstudio_user_session', JSON.stringify(session))
+      setCurrentUser(session)
+      setInWorkspace(true)
+      localStorage.setItem('garstudio_in_workspace', 'true')
+    } catch (err: unknown) {
+      const code = (err as { code?: string })?.code || ''
+      if (code !== 'auth/popup-closed-by-user' && code !== 'auth/cancelled-popup-request') {
+        alert('Gagal login GitHub. Pastikan popup browser diizinkan.')
+      }
+    }
+  }
+
+  // Tampilkan LandingPage jika belum masuk ke workspace dan belum login
+  if (!inWorkspace && !currentUser) {
+    return (
+      <LandingPage
+        onLoginSuccess={handleLoginSuccess}
+        onContinueGuest={() => {
+          setInWorkspace(true)
+          localStorage.setItem('garstudio_in_workspace', 'true')
+        }}
+      />
+    )
   }
 
   return (
@@ -453,7 +524,9 @@ export const App: React.FC = () => {
         onOpenGitHub={() => setIsGitHubOpen(true)}
         onExport={handleExport}
         currentUser={currentUser}
-        onLogout={handleLogout}
+        onSignOut={handleSignOut}
+        onLogout={handleGoToHome}
+        onOpenLogin={handleLoginWithGoogle}
         onOpenTutorial={() => setIsTutorialOpen(true)}
       />
 
@@ -482,6 +555,9 @@ export const App: React.FC = () => {
           folderLinked={!!folderName}
           folderName={folderName || undefined}
           onOpenFolder={handleLinkFolder}
+          currentUser={currentUser}
+          onLoginWithGoogle={handleLoginWithGoogle}
+          onLoginWithGitHub={handleLoginWithGitHub}
         />
       </div>
 
@@ -610,6 +686,9 @@ export const App: React.FC = () => {
               githubToken={settings.githubToken}
               folderLinked={!!folderName}
               onOpenFolder={handleLinkFolder}
+              currentUser={currentUser}
+              onLoginWithGoogle={handleLoginWithGoogle}
+              onLoginWithGitHub={handleLoginWithGitHub}
             />
           </div>
         )}
