@@ -110,22 +110,43 @@ async function callClaudeAPI(
 
 // ── System Prompt Builder ────────────────────────────────────────────────────
 const LANGUAGE_INSTRUCTION = `
-🌐 CORE PRINCIPLES & GUIDELINES (SENIOR FULL-STACK & AI SYSTEMS DEVELOPER):
-1. CONTINUOUS SINGLE-WORKSPACE ARCHITECTURE (LIKE VS CODE):
-- Treat the project as ONE continuous workspace. Do NOT discard or create fragmented new web apps when receiving revisions or additions.
-- Modify, expand, and update existing files (e.g. index.html, style.css, script.js) directly while preserving full context and existing functionality.
+🧠 ANTIGRAVITY-LEVEL AI AGENT — CORE PRINCIPLES:
 
-2. HANDCRAFTED, NON-GENERIC UI/UX (AVOID STERILE "AI-LOOKING" LAYOUTS):
-- Avoid predictable, repetitive, sterile AI card templates and standard centered designs.
-- Craft interfaces that look designed by top-tier product designers: curated color palettes, elegant typography (e.g. Plus Jakarta Sans, Outfit, Inter), fluid micro-animations, clear hierarchy, high-contrast dark modes, and refined visual accents.
+1. ALWAYS UNDERSTAND & NEVER ASK FOR CLARIFICATION:
+   - You are an expert AI coding agent that ALWAYS understands user intent — no matter how brief, vague, or informal the request.
+   - NEVER reply with "Bisakah kamu jelaskan?" or "Apa maksud Anda?" or any clarifying question.
+   - If the user says "buat game" → build a complete stunning game. If they say "toko online" → build a full e-commerce landing. ALWAYS infer and build.
+   - Treat every prompt as a complete specification. Fill in missing details with best-practice assumptions.
 
-3. PROACTIVE FEATURE & IDEA EXPANSION:
-- Even if user prompt is brief or simple, do not build a barebones or minimal demo.
-- Intelligently expand the concept: add rich interactive sub-features, sound/visual feedback, real state handling, edge-case safety, and responsive touch controls.
+2. CONTINUOUS SINGLE-WORKSPACE ARCHITECTURE (LIKE VS CODE / ANTIGRAVITY):
+   - Treat the project as ONE continuous workspace. Never discard or reset existing files unless explicitly told to start over.
+   - Modify, expand, and update existing files (index.html, style.css, script.js) directly, preserving all existing functionality.
+   - When correcting: read the FULL existing code before changing anything. Surgical edits only — never break what already works.
 
-4. BILINGUAL & PRODUCTION-READY:
-- Understand Bahasa Indonesia and English fluently. Respond and write UI text in Bahasa Indonesia by default unless requested otherwise.
-- Output clean, robust, production-ready code with complete logic that runs instantly in browser iframe sandboxes.
+3. HANDCRAFTED, NON-GENERIC UI/UX (AVOID STERILE AI-LOOKING LAYOUTS):
+   - NEVER use plain generic card layouts, basic colors, or template-looking designs.
+   - Craft UIs that look designed by world-class product designers:
+     • Curated color palettes (deep dark modes, vibrant neon accents, or elegant pastel gradients)
+     • Modern typography (Plus Jakarta Sans, Outfit, Inter from Google Fonts)
+     • Fluid micro-animations, glassmorphism, depth shadows, smooth transitions
+     • Clear visual hierarchy, touch-friendly interactive elements
+     • High-contrast readability, beautiful hover/active states
+
+4. PROACTIVE FEATURE EXPANSION — ALWAYS GO BEYOND THE MINIMUM:
+   - Even if the prompt is just 3 words, build a FULL, RICH, INTERACTIVE experience.
+   - Add: sound/visual feedback, state management, edge case handling, loading states, animations, responsive design.
+   - Think: "What would a senior engineer add to make this truly impressive?"
+
+5. BILINGUAL EXPERT — BAHASA INDONESIA & ENGLISH:
+   - Understand both languages perfectly. Detect which language was used and respond in the same language.
+   - UI text defaults to Bahasa Indonesia unless the prompt or context is in English.
+   - Understand slang, abbreviations, typos (e.g. "gabutin" = "gabungkan", "bikin" = "buat").
+
+6. PRODUCTION-READY CODE ONLY:
+   - All code must run INSTANTLY in a browser iframe sandbox with no external build step.
+   - Use CDN links for libraries (tailwindcss, chart.js, etc.) — never assume npm packages.
+   - Complete HTML in one file unless multiple files are clearly better.
+   - JavaScript must be robust: no undefined references, proper event listeners, error handling.
 `
 
 // ── AIAgentService ────────────────────────────────────────────────────────────
@@ -156,47 +177,76 @@ export class AIAgentService {
   }
 
   /**
-   * Automatically detect whether a prompt is a correction/edit of existing code
-   * or a request to create a new web application from scratch.
+   * Smart auto-detection: Correction/Edit vs New Web Creation.
+   * Uses broad NLP-style keyword matching — understands natural language in both Indonesian and English.
    */
   static isCorrectionOrEdit(prompt: string, currentFiles: WorkspaceFile[]): boolean {
-    const hasIndexFile = currentFiles.some(
-      (f) => (f.name === 'index.html' || f.path.endsWith('.html')) && f.content.trim().length > 30
+    const hasExistingCode = currentFiles.some(
+      (f) => (f.name === 'index.html' || f.path.endsWith('.html') || f.path.endsWith('.js') || f.path.endsWith('.css'))
+            && f.content.trim().length > 30
     )
 
-    // Jika belum ada file HTML sama sekali, selalu buat baru (bukan koreksi)
-    if (!hasIndexFile) {
-      return false
-    }
+    // No existing code at all → always create new
+    if (!hasExistingCode) return false
 
-    const lower = prompt.toLowerCase()
+    const lower = prompt.toLowerCase().trim()
 
-    // Kata kunci pembuatan baru yang eksplisit (bahkan saat sudah ada file)
+    // Explicit "create new" keywords → always create fresh
     const newWebKeywords = [
-      'buatkan saya web baru',
-      'bikin web baru',
-      'buat web baru',
-      'buat website baru',
-      'create new website',
-      'start from scratch',
-      'hapus dan buat baru',
+      'buatkan saya web baru', 'bikin web baru', 'buat web baru', 'buat website baru',
+      'create new website', 'start from scratch', 'hapus dan buat baru', 'reset semua',
+      'mulai dari nol', 'buat ulang', 'replace with', 'buat yang baru',
     ]
-    if (newWebKeywords.some((k) => lower.includes(k))) {
-      return false
+    if (newWebKeywords.some((k) => lower.includes(k))) return false
+
+    // If the prompt is clearly about building a whole new concept, it's a new creation
+    // (e.g. "buat game tebak kata" when existing code is a calculator)
+    const newCreationPatterns = [
+      /^buat(kan)? (sebuah |satu |)?(web|website|app|aplikasi|game|halaman|landing|toko|kalkulator|konverter|todo|chat|dashboard)/i,
+      /^bikin (web|website|app|aplikasi|game|halaman)/i,
+      /^create (a |an |)?(web|website|app|game|landing|dashboard|calculator|todo|chat)/i,
+      /^make (a |an |)?(web|website|app|game|landing|dashboard)/i,
+      /^build (a |an |)?(web|website|app|game|landing|dashboard)/i,
+      /^generate (a |an |)?(web|website|app|game)/i,
+    ]
+    if (newCreationPatterns.some((rx) => rx.test(lower)) && !hasExistingCode) return false
+    // If matches creation pattern AND there IS existing code → treat as new creation unless it's clearly a modification
+    if (newCreationPatterns.some((rx) => rx.test(lower))) {
+      // Could be "buat tombol baru" (modification) vs "buat game baru" (new app)
+      const isModificationOfExisting = [
+        'tombol', 'button', 'section', 'bagian', 'kolom', 'baris', 'card', 'navbar',
+        'header', 'footer', 'form', 'input', 'modal', 'dropdown', 'menu', 'tab',
+      ].some((w) => lower.includes(w))
+      if (!isModificationOfExisting) return false
     }
 
-    // Kata kunci koreksi / modifikasi langsung
+    // Broad correction/modification keywords (Indonesian + English + slang)
     const correctionKeywords = [
-      'ubah', 'ganti', 'perbaiki', 'koreksi', 'tambah', 'tambahkan', 'edit',
-      'hapus', 'kurangi', 'warna', 'warnanya', 'background', 'font', 'ukuran',
-      'tombol', 'tombolnya', 'teks', 'judul', 'timer', 'soal', 'pertanyaan',
-      'skor', 'sound', 'suara', 'animasi', 'layout', 'posisi', 'geser',
-      'fix', 'change', 'modify', 'update', 'tweak', 'adjust', 'add', 'remove',
-      'salah', 'kurang', 'benahi', 'tolong ubah', 'buat jadi', 'jadikan',
-      'bisa gak', 'bagaimana kalau',
+      // Indonesian standard
+      'ubah', 'ganti', 'perbaiki', 'koreksi', 'tambah', 'tambahkan', 'edit', 'hapus',
+      'kurangi', 'warna', 'warnanya', 'background', 'font', 'ukuran', 'ukurannya',
+      'tombol', 'tombolnya', 'teks', 'tulisan', 'judul', 'timer', 'soal', 'pertanyaan',
+      'skor', 'sound', 'suara', 'animasi', 'layout', 'posisi', 'geser', 'pindah',
+      'hilangkan', 'sembunyikan', 'tampilkan', 'aktifkan', 'matikan',
+      // Indonesian slang / informal
+      'gabutin', 'hapusin', 'tambahin', 'gantin', 'benerin', 'betulin', 'jadiin',
+      'bikin jadi', 'buat jadi', 'jadikan', 'jadi lebih', 'bisa gak', 'bisa dong',
+      'ganti aja', 'hapus aja', 'tambah aja', 'pake', 'pakai',
+      // English standard
+      'fix', 'change', 'modify', 'update', 'tweak', 'adjust', 'add', 'remove', 'delete',
+      'rename', 'move', 'resize', 'replace', 'switch', 'toggle', 'enable', 'disable',
+      'make it', 'make the', 'set the', 'set it', 'turn on', 'turn off', 'show', 'hide',
+      'improve', 'enhance', 'style', 'color', 'theme', 'font', 'size', 'position',
+      // Question-style corrections
+      'kenapa', 'mengapa', 'kok', 'knp', 'gak bisa', 'tidak bisa', "can't", "doesn't work",
+      'error', 'bug', 'broken', 'salah', 'kurang', 'belum', 'masih',
     ]
+    if (correctionKeywords.some((kw) => lower.includes(kw))) return true
 
-    return correctionKeywords.some((kw) => lower.includes(kw))
+    // Short prompts with existing code → likely a correction
+    if (lower.split(' ').length <= 5 && hasExistingCode) return true
+
+    return false
   }
 
   /**
@@ -215,24 +265,29 @@ export class AIAgentService {
   ): Promise<{ plan: AIPlan; rateLimit?: RateLimitInfo }> {
     const filesContext = currentFiles.map((f) => `- ${f.path}`).join('\n')
 
-    const systemPrompt = `You are an expert autonomous software architect AI agent for mobile web applications inside GarStudio IDE.
+    const systemPrompt = `You are GarStudio's Antigravity-level AI Architect Agent. You understand ANY user request — no matter how brief or informal — and ALWAYS produce a complete, actionable plan. NEVER ask for clarification.
 ${LANGUAGE_INSTRUCTION}
-The user wants to build: "${prompt}"
 
+User request: "${prompt}"
 Current workspace files:
-${filesContext || '(Empty workspace)'}
+${filesContext || '(Empty workspace — buat dari awal)'}
 
-Respond ONLY with a valid JSON object matching this schema without markdown fences:
+Analyze the request intelligently:
+- Understand intent even if the request is vague or uses slang
+- Plan a COMPLETE, RICH web application — not a minimal demo
+- Always plan for: modern UI/UX, full interactivity, responsive design, error handling
+
+Respond ONLY with a valid JSON object (no markdown fences, no extra text):
 {
-  "goal": "Ringkasan jelas apa yang akan dibangun (Bahasa Indonesia)",
-  "overview": "Penjelasan arsitektur dan alasan desain (Bahasa Indonesia)",
+  "goal": "Ringkasan jelas dan spesifik apa yang dibangun",
+  "overview": "Penjelasan arsitektur, pilihan teknologi, dan fitur-fitur unggulan yang akan diimplementasikan",
   "steps": [
     {
       "id": "step-1",
-      "title": "Judul langkah",
-      "description": "Apa yang akan diimplementasikan",
-      "action": "create" | "modify",
-      "filePath": "path/to/file.ext",
+      "title": "Judul langkah spesifik",
+      "description": "Detail implementasi yang akan dilakukan",
+      "action": "create",
+      "filePath": "index.html",
       "status": "pending"
     }
   ]
@@ -282,29 +337,35 @@ Respond ONLY with a valid JSON object matching this schema without markdown fenc
       .map((s) => `File: ${s.filePath} (${s.action}): ${s.description}`)
       .join('\n')
 
-    const prompt = `You are GarStudio Autonomous AI Agent. Generate functional, complete, production-ready code based on this plan.
+    const prompt = `You are GarStudio's Antigravity AI Code Generator. Generate a COMPLETE, STUNNING, PRODUCTION-READY web application based on this plan.
 ${LANGUAGE_INSTRUCTION}
+
+User's original request: "${promptText}"
 Goal: ${plan.goal}
-Architecture: ${plan.overview}
-Files to produce:
+Architecture overview: ${plan.overview}
+Files to generate:
 ${stepsInfo}
 
-IMPORTANT REQUIREMENTS:
-1. Generate complete, working code in index.html (include modern responsive CSS and full JavaScript interactivity).
-2. The web must work immediately when rendered in an iframe.
-3. Make the UI stunning, modern, touch-friendly for mobile & desktop with dark mode styling, gradients, and interactive animations.
+CRITICAL REQUIREMENTS:
+1. Generate COMPLETE, self-contained code — everything in index.html (HTML + CSS + JS unless plan specifies separate files).
+2. The web MUST work instantly in a browser iframe with no build step needed.
+3. UI MUST be stunning: dark mode, modern gradients, glassmorphism effects, smooth CSS animations, beautiful typography (use Google Fonts CDN).
+4. Make it FULLY INTERACTIVE: real working logic, state management, event handlers, form validation, visual/audio feedback.
+5. Mobile-first responsive design — works perfectly on phone, tablet, and desktop.
+6. Code must be complete — no TODO comments, no placeholder content, no "add your content here" sections.
+7. Include ALL questions/data/content if it's a quiz, game, or data-driven app — never use placeholder data.
 
-Output your response strictly as a JSON array of objects (no markdown fences, no extra text):
+Return ONLY a JSON array (no markdown, no explanation outside JSON):
 [
   {
     "path": "index.html",
-    "summary": "Ringkasan kode yang dibuat",
+    "summary": "Deskripsi lengkap fitur yang diimplementasikan",
     "code": "<!DOCTYPE html>..."
   }
 ]
 Return ONLY valid JSON.`
 
-    const sysPrompt = 'You are a senior full-stack web developer outputting strict JSON arrays of files. No markdown, no extra text.'
+    const sysPrompt = `You are an elite senior full-stack web developer. Output ONLY a valid JSON array of complete file objects. No markdown fences, no explanation text, no code block markers. Just pure JSON starting with [ and ending with ].`
 
     try {
       let text = ''
@@ -359,25 +420,30 @@ Return ONLY valid JSON.`
       .map((f) => `--- FILE: ${f.path} ---\n${f.content}\n--- END FILE ---`)
       .join('\n\n')
 
-    const systemPrompt = `You are GarStudio Autonomous AI Code Corrector.
+    const systemPrompt = `You are GarStudio's Antigravity-level AI Code Corrector — like VS Code Copilot but smarter.
 ${LANGUAGE_INSTRUCTION}
-The user requests a correction or update: "${prompt}"
+
+User request (understand this no matter how brief or informal): "${prompt}"
 
 Current Workspace Files:
 ${filesContext}
 
-Instructions:
-1. Understand the user's request precisely (e.g. modify colors, update questions, add timer, change text, fix bugs).
-2. Return the COMPLETE updated code for any modified files so they run immediately in preview.
-3. Return strictly a JSON array of FileChange objects:
+INSTRUCTIONS:
+1. UNDERSTAND the intent fully — the user might say "ganti warna jadi merah" or "make the button bigger" or "timer ga jalan" — you understand ALL of these.
+2. READ the full existing code carefully before making any changes.
+3. Apply PRECISE, SURGICAL changes — preserve all working functionality, only change what was requested.
+4. If the request mentions something not yet in the code, ADD it intelligently (e.g. "tambah dark mode toggle" → add the full dark mode feature).
+5. Return COMPLETE file content (not diffs) so the preview updates immediately.
+6. If the user reports a bug or something "tidak berjalan" / "error" / "broken", diagnose and fix the root cause — don't just add a comment.
+
+Return ONLY a JSON array (no markdown, no text outside JSON):
 [
   {
     "path": "index.html",
-    "summary": "Ringkasan perbaikan atau koreksi yang dilakukan",
+    "summary": "Deskripsi detail perubahan yang dilakukan",
     "code": "<!DOCTYPE html>..."
   }
-]
-No markdown fences, no extra text outside the JSON array.`
+]`
 
     try {
       let text = ''

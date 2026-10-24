@@ -120,11 +120,13 @@ export const AIAgentPanel: React.FC<AIAgentPanelProps> = ({
 
   // Quick suggestions for autonomous creation and direct corrections
   const quickPrompts = [
-    '🚀 Buat game quiz (TKA, B. Inggris, B. Indo, Matematika)',
-    '🎨 Ubah tema dark mode & gradient neon',
-    '⏱️ Tambahkan timer 30 detik & hitung skor',
-    '📱 Buat landing page toko online responsif',
-    '🔄 Tambahkan sound efek & animasi transisi',
+    '🚀 buat game quiz TKA, B.Inggris, B.Indo, Matematika',
+    '🛒 toko online pakaian premium dark mode',
+    '🎨 ubah tema jadi neon purple gradient',
+    '⏱️ tambahkan timer & animasi countdown',
+    '📱 buat landing page portofolio modern',
+    '🔧 timer ga jalan — tolong fix',
+    '📊 buat dashboard statistik interaktif',
   ]
 
   return (
@@ -227,11 +229,11 @@ export const AIAgentPanel: React.FC<AIAgentPanelProps> = ({
       <div className="px-3 py-1.5 bg-[#141414] border-b border-[#2b2b2b] flex items-center justify-between text-xs">
         <div className="flex items-center gap-1.5 text-cyan-400 font-semibold text-[11px]">
           <Sparkles className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
-          <span>Auto-Detect AI Agent</span>
+          <span>Antigravity AI Agent</span>
         </div>
         <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span>Auto-Plan, Generate & Koreksi Langsung</span>
+          <span>Pahami apa saja · Generate &amp; Koreksi Otomatis</span>
         </div>
       </div>
 
@@ -363,10 +365,10 @@ export const AIAgentPanel: React.FC<AIAgentPanelProps> = ({
             <Zap className={`w-4 h-4 animate-spin ${aiProvider === 'claude' ? 'text-amber-400' : 'text-cyan-400'}`} />
             <span>
               {aiStage === 'planning'
-                ? `Merumuskan arsitektur dengan ${aiProvider === 'claude' ? 'Claude AI' : 'Gemini'}...`
+                ? `🧠 Memahami & merencanakan arsitektur dengan ${aiProvider === 'claude' ? 'Claude AI' : aiProvider === 'copilot' ? 'Copilot' : 'Gemini'}...`
                 : aiStage === 'generating'
-                ? `Menghasilkan kode & langsung menerapkan ke Live Preview...`
-                : 'Menganalisis & menerapkan koreksi kode...'}
+                ? `⚡ Menghasilkan kode lengkap & menerapkan ke Live Preview...`
+                : '🔍 Menganalisis & menerapkan koreksi ke kode...'}
             </span>
           </div>
         )}
@@ -559,7 +561,7 @@ export const AIAgentPanel: React.FC<AIAgentPanelProps> = ({
               ? '🔒 Masuk dengan Google atau GitHub untuk menggunakan AI Agent...'
               : !folderLinked
               ? '⚠️ Hubungkan folder dulu sebelum menggunakan AI...'
-              : 'Tulis web impian atau koreksi kode (contoh: buat web quiz, ubah warna background, tambah timer)...'
+              : 'Ketik apa saja... "buat toko online", "ubah warna jadi biru", "timer ga jalan", dll.'
           }
           disabled={!currentUser || !folderLinked || aiStage === 'planning' || aiStage === 'generating'}
           className={`flex-1 bg-[#252526] border rounded-xl px-3 py-2 text-xs placeholder-slate-500 focus:outline-none transition ${

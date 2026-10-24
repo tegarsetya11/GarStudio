@@ -176,7 +176,7 @@ export const App: React.FC = () => {
       id: 'm-init',
       role: 'assistant',
       content:
-        '👋 Selamat datang di GarStudio! IDE Mobile AI untuk Android. Ketik perintah dalam Bahasa Indonesia atau Inggris — saya mengerti keduanya! Gunakan mode **Buat Plan** untuk membangun fitur baru, atau **Interaktif** untuk tanya jawab cepat. Pilih engine AI (Gemini/Claude) di panel ini.',
+        '👋 Halo! Saya GarStudio AI Agent — siap membantu membangun web impian Anda!\n\n💡 **Saya mengerti apa saja yang Anda ketik**, baik Bahasa Indonesia, Inggris, atau bahasa gaul sekalipun. Tidak perlu format khusus!\n\nContoh perintah:\n• "buat game quiz matematika" → langsung generate\n• "toko online pakaian premium" → langsung generate\n• "ubah warna jadi merah" → langsung koreksi\n• "timer ga jalan" → langsung debug & fix\n\n🚀 Ketik apa saja — saya akan selalu memahami dan langsung menghasilkan kodenya!',
       timestamp: Date.now(),
     },
   ])
