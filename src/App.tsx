@@ -448,6 +448,7 @@ export const App: React.FC = () => {
           onTogglePreview={() => setMobilePreviewVisible((v) => !v)}
           folderLinked={!!folderName}
           folderName={folderName || undefined}
+          onOpenFolder={handleLinkFolder}
         />
       </div>
 
@@ -503,6 +504,9 @@ export const App: React.FC = () => {
                   onChange={handleEditorChange}
                   onSave={handleSaveFile}
                   isSaved={true}
+                  folderLinked={!!folderName}
+                  folderName={folderName || undefined}
+                  onOpenFolder={handleLinkFolder}
                 />
               </div>
             )}
@@ -535,6 +539,9 @@ export const App: React.FC = () => {
                     onChange={handleEditorChange}
                     onSave={handleSaveFile}
                     isSaved={true}
+                    folderLinked={!!folderName}
+                    folderName={folderName || undefined}
+                    onOpenFolder={handleLinkFolder}
                   />
                 </div>
                 <div

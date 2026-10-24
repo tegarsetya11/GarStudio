@@ -35,6 +35,7 @@ interface MobileLayoutProps {
   onTogglePreview?: () => void
   folderLinked?: boolean
   folderName?: string
+  onOpenFolder?: () => void
 }
 
 type PanelFocus = 'editor' | 'preview' | 'agent' | 'split'
@@ -59,6 +60,7 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
   onTogglePreview,
   folderLinked = false,
   folderName,
+  onOpenFolder,
 }) => {
   const [codeVisible, setCodeVisible] = useState(true)
   const [internalPreviewVisible, setInternalPreviewVisible] = useState(true)
@@ -263,6 +265,7 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
                   isSaved={true}
                   folderLinked={folderLinked}
                   folderName={folderName}
+                  onOpenFolder={onOpenFolder}
                 />
               </div>
             </div>

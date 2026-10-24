@@ -8,7 +8,7 @@ import { html } from '@codemirror/lang-html'
 import { css } from '@codemirror/lang-css'
 import { json } from '@codemirror/lang-json'
 import { oneDark } from '@codemirror/theme-one-dark'
-import { Undo, Redo, FileCode, Check, Save, ChevronRight, Folder } from 'lucide-react'
+import { Undo, Redo, FileCode, Check, Save, ChevronRight, Folder, FolderOpen } from 'lucide-react'
 import type { WorkspaceFile } from '../types'
 
 interface CodeEditorProps {
@@ -18,6 +18,7 @@ interface CodeEditorProps {
   isSaved?: boolean
   folderLinked?: boolean
   folderName?: string
+  onOpenFolder?: () => void
 }
 
 export const CodeEditor: React.FC<CodeEditorProps> = ({
@@ -26,6 +27,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
   onSave,
   folderLinked = false,
   folderName,
+  onOpenFolder,
 }) => {
   const editorContainerRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
@@ -197,6 +199,16 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
         <p className="text-xs text-slate-500 mt-1 max-w-xs">
           Hubungkan folder perangkat Anda atau gunakan AI Agent untuk mulai membuat website.
         </p>
+        {onOpenFolder && (
+          <button
+            type="button"
+            onClick={onOpenFolder}
+            className="mt-4 px-4 py-2.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-cyan-900/40 flex items-center gap-2 active:scale-95 transition cursor-pointer"
+          >
+            <FolderOpen className="w-4 h-4 text-cyan-200" />
+            <span>Open Android Local Folder</span>
+          </button>
+        )}
       </div>
     )
   }

@@ -13,7 +13,7 @@ import type { UserSession, WorkspaceFile } from '../types'
 interface HeaderProps {
   folderName: string | null
   activeFile: WorkspaceFile | null
-  onOpenFolder: () => void
+  onOpenFolder?: () => void
   onOpenSettings: () => void
   onOpenGitHub: () => void
   onExport: () => void
@@ -73,14 +73,6 @@ export const Header: React.FC<HeaderProps> = ({
 
 
 
-        {/* Link Physical Folder */}
-        <button
-          onClick={onOpenFolder}
-          title="Open Android Local Folder"
-          className="p-1 rounded hover:bg-[#2a2d2e] text-slate-300 transition"
-        >
-          <FolderOpen className="w-3.5 h-3.5 text-cyan-400" />
-        </button>
 
         {/* GitHub Sync */}
         <button
