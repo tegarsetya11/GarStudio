@@ -48,7 +48,7 @@ export const VSCodeTabBar: React.FC<VSCodeTabBarProps> = ({
   }
 
   return (
-    <div className="h-9 bg-[#181818] border-b border-[#2b2b2b] flex items-center justify-between select-none shrink-0 z-10 overflow-hidden">
+    <div className="h-9 bg-[#1e1f20] border-b border-[#282a2c] flex items-center justify-between select-none shrink-0 z-10 overflow-hidden">
       {/* Open File Tabs */}
       <div className="flex items-center h-full overflow-x-auto no-scrollbar flex-1">
         {files.map((file) => {
@@ -57,10 +57,10 @@ export const VSCodeTabBar: React.FC<VSCodeTabBarProps> = ({
             <div
               key={file.id}
               onClick={() => onSelectFile(file)}
-              className={`group flex items-center gap-2 px-3 h-full cursor-pointer text-xs transition border-r border-[#2b2b2b] shrink-0 ${
+              className={`group flex items-center gap-2 px-3 h-full cursor-pointer text-xs transition border-r border-[#282a2c] shrink-0 ${
                 isActive
-                  ? 'bg-[#1e1e1e] text-slate-100 border-t-2 border-t-[#007acc] font-medium'
-                  : 'bg-[#181818] text-slate-400 hover:bg-[#1f1f1f] hover:text-slate-200'
+                  ? 'bg-[#131314] text-white border-t-2 border-t-blue-500 font-semibold'
+                  : 'bg-[#1e1f20] text-slate-400 hover:bg-[#282a2c] hover:text-slate-200'
               }`}
             >
               <div className="flex items-center gap-1.5">
@@ -84,21 +84,21 @@ export const VSCodeTabBar: React.FC<VSCodeTabBarProps> = ({
         })}
       </div>
 
-      {/* VS Code Editor Action Icons */}
-      <div className="flex items-center gap-1 px-2 h-full bg-[#181818] border-l border-[#2b2b2b] shrink-0 text-slate-300">
-        {/* Toggle Split View (Open Preview to the Side) */}
+      {/* Action Icons */}
+      <div className="flex items-center gap-1 px-2 h-full bg-[#1e1f20] border-l border-[#282a2c] shrink-0 text-slate-300">
+        {/* Toggle Split View */}
         <button
           onClick={() => setViewMode(viewMode === 'split' ? 'editor' : 'split')}
-          className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition active:scale-95 ${
+          className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs transition active:scale-95 cursor-pointer ${
             viewMode === 'split'
-              ? 'bg-[#007acc] text-white font-semibold shadow-sm'
-              : 'hover:bg-slate-800 text-slate-300'
+              ? 'bg-blue-600 text-white font-semibold shadow-sm'
+              : 'hover:bg-[#282a2c] text-slate-300'
           }`}
-          title={viewMode === 'split' ? 'Close Side Preview' : 'Open Live Preview to the Side (Split View)'}
+          title={viewMode === 'split' ? 'Tutup Side Preview' : 'Buka Live Preview ke samping'}
         >
           <Split className="w-3.5 h-3.5" />
           <span className="text-[11px] hidden sm:inline">
-            {viewMode === 'split' ? 'Side Preview On' : 'Preview to Side'}
+            {viewMode === 'split' ? 'Split On' : 'Split'}
           </span>
         </button>
 

@@ -25,86 +25,82 @@ export const VSCodeActivityBar: React.FC<VSCodeActivityBarProps> = ({
   hasError,
 }) => {
   return (
-    <aside className="w-12 bg-[#181818] border-r border-[#2b2b2b] flex flex-col justify-between items-center py-2 shrink-0 select-none z-30">
+    <aside className="w-12 bg-[#131314] border-r border-[#282a2c] flex flex-col justify-between items-center py-3 shrink-0 select-none z-30">
       {/* Top Activity Icons */}
-      <div className="flex flex-col items-center gap-2 w-full">
+      <div className="flex flex-col items-center gap-2 w-full px-1">
         {/* Explorer */}
         <button
           onClick={() => setActivePanel(activePanel === 'explorer' ? 'editor' : 'explorer')}
-          className={`w-full py-2.5 flex items-center justify-center relative transition ${
-            activePanel === 'explorer' ? 'text-white' : 'text-slate-400 hover:text-slate-200'
+          className={`w-9 h-9 rounded-xl flex items-center justify-center relative transition active:scale-95 cursor-pointer ${
+            activePanel === 'explorer'
+              ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30 shadow-sm shadow-blue-500/20'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-[#1e1f20]'
           }`}
-          title="Explorer (Files)"
+          title="File Explorer"
         >
-          {activePanel === 'explorer' && (
-            <span className="absolute left-0 top-1 bottom-1 w-0.5 bg-[#007acc]" />
-          )}
-          <Files className="w-5 h-5" />
+          <Files className="w-4 h-4" />
         </button>
 
         {/* Source Control (GitHub) */}
         <button
           onClick={() => setActivePanel(activePanel === 'git' ? 'editor' : 'git')}
-          className={`w-full py-2.5 flex items-center justify-center relative transition ${
-            activePanel === 'git' ? 'text-white' : 'text-slate-400 hover:text-slate-200'
+          className={`w-9 h-9 rounded-xl flex items-center justify-center relative transition active:scale-95 cursor-pointer ${
+            activePanel === 'git'
+              ? 'bg-purple-600/20 text-purple-400 border border-purple-500/30 shadow-sm shadow-purple-500/20'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-[#1e1f20]'
           }`}
-          title="Source Control (GitHub)"
+          title="GitHub Sync & Version Control"
         >
-          {activePanel === 'git' && (
-            <span className="absolute left-0 top-1 bottom-1 w-0.5 bg-[#007acc]" />
-          )}
-          <GitBranch className="w-5 h-5" />
+          <GitBranch className="w-4 h-4" />
         </button>
 
         {/* Live Preview */}
         <button
           onClick={() => setActivePanel(activePanel === 'preview' ? 'editor' : 'preview')}
-          className={`w-full py-2.5 flex items-center justify-center relative transition ${
-            activePanel === 'preview' ? 'text-white' : 'text-slate-400 hover:text-slate-200'
+          className={`w-9 h-9 rounded-xl flex items-center justify-center relative transition active:scale-95 cursor-pointer ${
+            activePanel === 'preview'
+              ? 'bg-cyan-600/20 text-cyan-400 border border-cyan-500/30 shadow-sm shadow-cyan-500/20'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-[#1e1f20]'
           }`}
-          title="Live Preview"
+          title="Live Preview Sandbox"
         >
-          {activePanel === 'preview' && (
-            <span className="absolute left-0 top-1 bottom-1 w-0.5 bg-[#007acc]" />
-          )}
-          <Eye className="w-5 h-5" />
+          <Eye className="w-4 h-4" />
           {hasError && (
-            <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+            <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-rose-500 animate-ping" />
           )}
         </button>
 
         {/* AI Agent */}
         <button
           onClick={() => setActivePanel(activePanel === 'agent' ? 'editor' : 'agent')}
-          className={`w-full py-2.5 flex items-center justify-center relative transition ${
-            activePanel === 'agent' ? 'text-cyan-400' : 'text-slate-400 hover:text-cyan-300'
+          className={`w-9 h-9 rounded-xl flex items-center justify-center relative transition active:scale-95 cursor-pointer ${
+            activePanel === 'agent'
+              ? 'bg-gradient-to-tr from-blue-600/30 to-purple-600/30 text-purple-300 border border-purple-500/40 shadow-sm shadow-purple-500/25'
+              : 'text-slate-400 hover:text-purple-300 hover:bg-[#1e1f20]'
           }`}
-          title="AI Engineering Agent (Gemini & Claude)"
+          title="Google Gemini AI Agent Panel"
         >
-          {activePanel === 'agent' && (
-            <span className="absolute left-0 top-1 bottom-1 w-0.5 bg-cyan-400" />
-          )}
-          <Sparkles className="w-5 h-5" />
+          <Sparkles className="w-4 h-4" />
         </button>
 
         {/* Android Device Folder */}
         <button
           onClick={onOpenFolder}
-          className="w-full py-2.5 flex items-center justify-center text-emerald-400/80 hover:text-emerald-300 transition"
-          title="Open Android Device Folder"
+          className="w-9 h-9 rounded-xl flex items-center justify-center text-emerald-400 hover:text-emerald-300 hover:bg-[#1e1f20] transition active:scale-95 cursor-pointer"
+          title="Hubungkan Folder Kerja"
         >
-          <FolderOpen className="w-5 h-5" />
+          <FolderOpen className="w-4 h-4" />
         </button>
       </div>
 
       {/* Bottom Icons */}
-      <div className="flex flex-col items-center gap-1 w-full">
+      <div className="flex flex-col items-center gap-1 w-full px-1">
         <button
           onClick={onOpenSettings}
-          className="w-full py-2.5 flex items-center justify-center text-slate-400 hover:text-slate-200 transition"
-          title="Settings (API Keys, Themes, Models)"
+          className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-200 hover:bg-[#1e1f20] transition active:scale-95 cursor-pointer"
+          title="Pengaturan GarStudio"
         >
-          <Settings className="w-5 h-5" />
+          <Settings className="w-4 h-4" />
         </button>
       </div>
     </aside>

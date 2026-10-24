@@ -42,20 +42,20 @@ export const VSCodeStatusBar: React.FC<VSCodeStatusBarProps> = ({
   }
 
   return (
-    <footer className="h-6 bg-[#007acc] text-white flex items-center justify-between px-2 text-[11px] select-none shrink-0 z-40 overflow-hidden font-mono">
+    <footer className="h-6 bg-[#131314] text-slate-300 border-t border-[#282a2c] flex items-center justify-between px-3 text-[11px] select-none shrink-0 z-40 overflow-hidden font-mono">
       {/* Left Items */}
       <div className="flex items-center gap-2.5 truncate">
         {/* Remote indicator */}
-        <div className="flex items-center gap-1 bg-[#16825d] hover:bg-[#1a996d] px-2 py-0.5 cursor-pointer font-sans font-semibold text-[10px]">
+        <div className="flex items-center gap-1 bg-emerald-950/80 text-emerald-400 border border-emerald-800/40 px-2 py-0.5 rounded cursor-pointer font-sans font-semibold text-[10px]">
           <Smartphone className="w-3 h-3" />
-          <span className="hidden sm:inline">Android:</span>
+          <span className="hidden sm:inline">Workspace:</span>
           <span>{folderName ? folderName : 'Local'}</span>
         </div>
 
         {/* Git Branch */}
         <div className="flex items-center gap-1 hover:bg-white/10 px-1.5 py-0.5 rounded cursor-pointer">
-          <GitBranch className="w-3 h-3" />
-          <span>main*</span>
+          <GitBranch className="w-3 h-3 text-purple-400" />
+          <span>main</span>
         </div>
 
         {/* Error / Diagnostics */}
@@ -70,7 +70,7 @@ export const VSCodeStatusBar: React.FC<VSCodeStatusBarProps> = ({
           </div>
         ) : (
           <div className="flex items-center gap-1 hover:bg-white/10 px-1.5 py-0.5 rounded cursor-pointer opacity-90 hidden sm:flex">
-            <CheckCircle className="w-3 h-3" />
+            <CheckCircle className="w-3 h-3 text-emerald-400" />
             <span>0</span>
           </div>
         )}
@@ -78,12 +78,21 @@ export const VSCodeStatusBar: React.FC<VSCodeStatusBarProps> = ({
 
       {/* Right Items */}
       <div className="flex items-center gap-1.5 shrink-0">
-        {/* View Mode Toggle: Code | Split | Preview */}
-        <div className="flex items-center bg-black/20 rounded p-0.5 mr-1">
+        {/* View Mode Toggle: Tri-View | Code | Split | Preview */}
+        <div className="flex items-center bg-[#1e1f20] border border-[#282a2c] rounded-lg p-0.5 mr-1 gap-0.5">
+          <button
+            onClick={() => setViewMode('tri')}
+            className={`px-1.5 py-0.5 rounded flex items-center gap-1 text-[10px] transition cursor-pointer ${
+              viewMode === 'tri' ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold' : 'text-slate-400 hover:text-white'
+            }`}
+            title="3 Penampil Sekaligus (Code + Preview + AI Agent)"
+          >
+            <span>✨ 3-Panel</span>
+          </button>
           <button
             onClick={() => setViewMode('editor')}
-            className={`px-1.5 py-0.5 rounded flex items-center gap-1 text-[10px] transition ${
-              viewMode === 'editor' ? 'bg-white/30 text-white font-bold' : 'text-white/70 hover:text-white'
+            className={`px-1.5 py-0.5 rounded flex items-center gap-1 text-[10px] transition cursor-pointer ${
+              viewMode === 'editor' ? 'bg-[#282a2c] text-white font-bold' : 'text-slate-400 hover:text-white'
             }`}
             title="Code Editor Only"
           >
@@ -92,18 +101,18 @@ export const VSCodeStatusBar: React.FC<VSCodeStatusBarProps> = ({
           </button>
           <button
             onClick={() => setViewMode('split')}
-            className={`px-1.5 py-0.5 rounded flex items-center gap-1 text-[10px] transition ${
-              viewMode === 'split' ? 'bg-white/30 text-white font-bold' : 'text-white/70 hover:text-white'
+            className={`px-1.5 py-0.5 rounded flex items-center gap-1 text-[10px] transition cursor-pointer ${
+              viewMode === 'split' ? 'bg-[#282a2c] text-white font-bold' : 'text-slate-400 hover:text-white'
             }`}
-            title="Split: HTML Code on left, Live Web on right"
+            title="Split: Code on left, Live Web on right"
           >
             <Split className="w-3 h-3" />
-            <span className="font-bold">Split ◫</span>
+            <span className="font-bold">Split</span>
           </button>
           <button
             onClick={() => setViewMode('preview')}
-            className={`px-1.5 py-0.5 rounded flex items-center gap-1 text-[10px] transition ${
-              viewMode === 'preview' ? 'bg-white/30 text-white font-bold' : 'text-white/70 hover:text-white'
+            className={`px-1.5 py-0.5 rounded flex items-center gap-1 text-[10px] transition cursor-pointer ${
+              viewMode === 'preview' ? 'bg-[#282a2c] text-white font-bold' : 'text-slate-400 hover:text-white'
             }`}
             title="Live Web Preview Only"
           >

@@ -168,27 +168,29 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
   }
 
   return (
-    <div className="flex flex-col h-full w-full overflow-hidden bg-[#1e1e1e]">
-      {/* Quick Layout Switcher Bar */}
-      <div className="flex items-center justify-between px-2 py-1 bg-[#141414] border-b border-[#2b2b2b] shrink-0">
+    <div className="flex flex-col h-full w-full overflow-hidden bg-[#131314]">
+      {/* Gemini Mobile 3-Viewer Switcher Bar */}
+      <div className="flex items-center justify-between px-2.5 py-1.5 bg-[#1e1f20] border-b border-[#282a2c] shrink-0">
         <div className="flex items-center gap-1">
           {(
             [
-              { key: 'split', icon: <GripHorizontal className="w-3.5 h-3.5" />, label: 'Balanced' },
-              { key: 'editor', icon: <Code2 className="w-3.5 h-3.5" />, label: 'Editor' },
-              { key: 'preview', icon: <Globe className="w-3.5 h-3.5" />, label: 'Preview' },
-              { key: 'agent', icon: <Bot className="w-3.5 h-3.5" />, label: 'AI' },
+              { key: 'split', icon: <span className="text-amber-300">✨</span>, label: 'Tri-View' },
+              { key: 'editor', icon: <Code2 className="w-3 h-3" />, label: 'Code' },
+              { key: 'preview', icon: <Globe className="w-3 h-3" />, label: 'Preview' },
+              { key: 'agent', icon: <Bot className="w-3 h-3" />, label: 'AI Agent' },
             ] as const
           ).map(({ key, icon, label }) => (
             <button
               key={key}
               onClick={() => applyPreset(key)}
-              className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium transition ${
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-bold transition active:scale-95 cursor-pointer ${
                 panelFocus === key
-                  ? key === 'agent'
-                    ? 'bg-amber-600/80 text-white'
-                    : 'bg-[#007acc] text-white'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-[#252526]'
+                  ? key === 'split'
+                    ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white shadow-sm shadow-indigo-500/25 border border-indigo-400/30'
+                    : key === 'agent'
+                    ? 'bg-purple-600 text-white border border-purple-400/30'
+                    : 'bg-blue-600 text-white border border-blue-400/30'
+                  : 'text-slate-400 hover:text-white hover:bg-[#282a2c]'
               }`}
             >
               {icon}
@@ -196,12 +198,13 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
             </button>
           ))}
         </div>
+
         {/* Panel Visibility Toggles */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1">
           {/* Toggle Code Button */}
           <button
             onClick={() => setCodeVisible((v) => !v)}
-            className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium transition ${
+            className={`flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-medium transition ${
               codeVisible
                 ? 'text-cyan-400 bg-cyan-500/10 border border-cyan-500/20'
                 : 'text-slate-400 hover:text-slate-200'
@@ -215,7 +218,7 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
           {/* Toggle Preview Button */}
           <button
             onClick={togglePreview}
-            className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium transition ${
+            className={`flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-medium transition ${
               isPreviewVisible
                 ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20'
                 : 'text-slate-400 hover:text-slate-200'

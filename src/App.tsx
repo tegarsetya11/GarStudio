@@ -60,8 +60,8 @@ export const App: React.FC = () => {
   const [folderName, setFolderName] = useState<string | null>(null)
   const [activePanel, setActivePanel] = useState<ActivePanel>('editor')
 
-  // VS Code Layout: Editor, Split (Side-by-side or Top-bottom), or Preview
-  const [viewMode, setViewMode] = useState<ViewMode>('split')
+  // Gemini Canvas Layout: 'tri' (3 Panes: Code + Preview + AI Agent), 'split', 'preview-agent', or full
+  const [viewMode, setViewMode] = useState<ViewMode>('tri')
   const [splitOrientation, setSplitOrientation] = useState<SplitOrientation>('horizontal')
   const [mobilePreviewVisible, setMobilePreviewVisible] = useState(true)
 
@@ -526,8 +526,8 @@ export const App: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen h-[100dvh] w-full bg-[#1e1e1e] text-[#cccccc] overflow-hidden font-sans select-none">
-      {/* VS Code Title Bar - shown on all screens */}
+    <div className="flex flex-col h-screen h-[100dvh] w-full bg-[#131314] text-slate-100 overflow-hidden font-sans select-none">
+      {/* Google Gemini Canvas Header */}
       <Header
         folderName={folderName}
         activeFile={activeFile}
@@ -540,10 +540,14 @@ export const App: React.FC = () => {
         onLogout={handleGoToHome}
         onOpenLogin={handleLoginWithGoogle}
         onOpenTutorial={() => setIsTutorialOpen(true)}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        onToggleExplorer={() => setActivePanel(activePanel === 'explorer' ? 'editor' : 'explorer')}
+        isExplorerOpen={activePanel === 'explorer'}
       />
 
       {/* ═══════════════════════════════════════════════════════ */}
-      {/* MOBILE LAYOUT: Top=Code, Middle=Preview, Bottom=AI Agent */}
+      {/* MOBILE LAYOUT: Gemini 3-Viewer Stacked / Segmented View */}
       {/* ═══════════════════════════════════════════════════════ */}
       <div className="flex-1 md:hidden overflow-hidden">
         <MobileLayout
@@ -574,10 +578,10 @@ export const App: React.FC = () => {
       </div>
 
       {/* ═══════════════════════════════════════════════════════ */}
-      {/* DESKTOP LAYOUT: VS Code-style side-by-side layout       */}
+      {/* DESKTOP GEMINI CANVAS: 3-Panel Tri-View & Multi-Layout  */}
       {/* ═══════════════════════════════════════════════════════ */}
-      <div className="hidden md:flex flex-1 overflow-hidden relative">
-        {/* VS Code Activity Bar (Leftmost icon strip) */}
+      <div className="hidden md:flex flex-1 overflow-hidden relative bg-[#131314]">
+        {/* Gemini Activity Strip (Leftmost icon strip) */}
         <VSCodeActivityBar
           activePanel={activePanel}
           setActivePanel={setActivePanel}
@@ -586,9 +590,9 @@ export const App: React.FC = () => {
           hasError={!!currentError}
         />
 
-        {/* VS Code Secondary Sidebar (File Explorer) */}
+        {/* Secondary Sidebar (File Explorer) */}
         {activePanel === 'explorer' && (
-          <div className="w-64 h-full border-r border-[#2b2b2b] shrink-0 z-20 flex flex-col bg-[#252526]">
+          <div className="w-64 h-full border-r border-[#282a2c] shrink-0 z-20 flex flex-col bg-[#1e1f20]">
             <FileExplorer
               files={files}
               activeFile={activeFile}
@@ -601,60 +605,25 @@ export const App: React.FC = () => {
           </div>
         )}
 
-        {/* VS Code Main Editor & Live Preview Area */}
-        <div className="flex-1 flex flex-col h-full overflow-hidden bg-[#1e1e1e]">
-          {/* VS Code Tabs */}
-          <VSCodeTabBar
-            files={files}
-            activeFile={activeFile}
-            onSelectFile={handleSelectFile}
-            viewMode={viewMode}
-            setViewMode={setViewMode}
-            splitOrientation={splitOrientation}
-            setSplitOrientation={setSplitOrientation}
-            onRunPreview={() => setViewMode(viewMode === 'preview' ? 'editor' : 'preview')}
-            onOpenAI={() => setActivePanel(activePanel === 'agent' ? 'editor' : 'agent')}
-          />
-
-          {/* Central Stage */}
-          <div className="flex-1 overflow-hidden relative">
-            {viewMode === 'editor' && (
-              <div className="w-full h-full">
-                <CodeEditor
-                  file={activeFile}
-                  onChange={handleEditorChange}
-                  onSave={handleSaveFile}
-                  isSaved={true}
-                  folderLinked={!!folderName}
-                  folderName={folderName || undefined}
-                  onOpenFolder={handleLinkFolder}
-                />
-              </div>
-            )}
-
-            {viewMode === 'preview' && (
-              <div className="w-full h-full">
-                <LivePreview
+        {/* Gemini Canvas Workspace */}
+        <div className="flex-1 flex flex-col h-full overflow-hidden bg-[#131314]">
+          {/* ── Mode 1: 3-Panel Tri-View (Code + Preview + AI Agent side-by-side) ── */}
+          {viewMode === 'tri' && (
+            <div className="w-full h-full flex flex-row overflow-hidden divide-x divide-[#282a2c]">
+              {/* Panel 1: Code Editor (32%) */}
+              <div className="w-[32%] h-full flex flex-col bg-[#1e1f20]/50 overflow-hidden">
+                <VSCodeTabBar
                   files={files}
-                  onAutoFixError={handleAutoFixError}
-                  isFixing={isFixingBug}
+                  activeFile={activeFile}
+                  onSelectFile={handleSelectFile}
+                  viewMode={viewMode}
+                  setViewMode={setViewMode}
+                  splitOrientation={splitOrientation}
+                  setSplitOrientation={setSplitOrientation}
+                  onRunPreview={() => setViewMode('preview')}
+                  onOpenAI={() => setViewMode('agent')}
                 />
-              </div>
-            )}
-
-            {viewMode === 'split' && (
-              <div
-                className={`w-full h-full flex ${
-                  splitOrientation === 'horizontal' ? 'flex-row' : 'flex-col'
-                }`}
-              >
-                <div
-                  className={`relative overflow-hidden ${
-                    splitOrientation === 'horizontal'
-                      ? 'w-1/2 h-full border-r border-[#2b2b2b]'
-                      : 'w-full h-1/2 border-b border-[#2b2b2b]'
-                  }`}
-                >
+                <div className="flex-1 overflow-hidden relative">
                   <CodeEditor
                     file={activeFile}
                     onChange={handleEditorChange}
@@ -665,11 +634,68 @@ export const App: React.FC = () => {
                     onOpenFolder={handleLinkFolder}
                   />
                 </div>
-                <div
-                  className={`relative overflow-hidden ${
-                    splitOrientation === 'horizontal' ? 'w-1/2 h-full' : 'w-full h-1/2'
-                  }`}
-                >
+              </div>
+
+              {/* Panel 2: Live Web Preview Sandbox (38%) */}
+              <div className="w-[38%] h-full flex flex-col bg-[#05070d] overflow-hidden">
+                <LivePreview
+                  files={files}
+                  onAutoFixError={handleAutoFixError}
+                  isFixing={isFixingBug}
+                />
+              </div>
+
+              {/* Panel 3: Gemini AI Agent Panel (30%) */}
+              <div className="w-[30%] h-full flex flex-col bg-[#18181b]/95 border-l border-[#282a2c] overflow-hidden">
+                <AIAgentPanel
+                  messages={messages}
+                  aiStage={aiStage}
+                  aiProvider={settings.aiProvider}
+                  aiMode={aiMode}
+                  onSwitchProvider={(provider) => handleUpdateSettings({ aiProvider: provider })}
+                  onSwitchMode={setAiMode}
+                  onSendPrompt={handleSendPrompt}
+                  onApplyChanges={handleApplyChanges}
+                  activeFile={activeFile}
+                  files={files}
+                  githubToken={settings.githubToken}
+                  folderLinked={!!folderName}
+                  onOpenFolder={handleLinkFolder}
+                  currentUser={currentUser}
+                  onLoginWithGoogle={handleLoginWithGoogle}
+                  onLoginWithGitHub={handleLoginWithGitHub}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* ── Mode 2: Code (50%) + Web Preview (50%) ── */}
+          {viewMode === 'split' && (
+            <div className="w-full h-full flex flex-col">
+              <VSCodeTabBar
+                files={files}
+                activeFile={activeFile}
+                onSelectFile={handleSelectFile}
+                viewMode={viewMode}
+                setViewMode={setViewMode}
+                splitOrientation={splitOrientation}
+                setSplitOrientation={setSplitOrientation}
+                onRunPreview={() => setViewMode('preview')}
+                onOpenAI={() => setViewMode('agent')}
+              />
+              <div className={`flex-1 flex overflow-hidden ${splitOrientation === 'horizontal' ? 'flex-row divide-x divide-[#282a2c]' : 'flex-col divide-y divide-[#282a2c]'}`}>
+                <div className={`${splitOrientation === 'horizontal' ? 'w-1/2 h-full' : 'w-full h-1/2'} relative overflow-hidden bg-[#1e1f20]/50`}>
+                  <CodeEditor
+                    file={activeFile}
+                    onChange={handleEditorChange}
+                    onSave={handleSaveFile}
+                    isSaved={true}
+                    folderLinked={!!folderName}
+                    folderName={folderName || undefined}
+                    onOpenFolder={handleLinkFolder}
+                  />
+                </div>
+                <div className={`${splitOrientation === 'horizontal' ? 'w-1/2 h-full' : 'w-full h-1/2'} relative overflow-hidden bg-[#05070d]`}>
                   <LivePreview
                     files={files}
                     onAutoFixError={handleAutoFixError}
@@ -677,13 +703,109 @@ export const App: React.FC = () => {
                   />
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
+
+          {/* ── Mode 3: Web Preview (55%) + AI Agent (45%) ── */}
+          {viewMode === 'preview-agent' && (
+            <div className="w-full h-full flex flex-row overflow-hidden divide-x divide-[#282a2c]">
+              <div className="w-[55%] h-full flex flex-col bg-[#05070d] overflow-hidden">
+                <LivePreview
+                  files={files}
+                  onAutoFixError={handleAutoFixError}
+                  isFixing={isFixingBug}
+                />
+              </div>
+              <div className="w-[45%] h-full flex flex-col bg-[#18181b]/95 overflow-hidden">
+                <AIAgentPanel
+                  messages={messages}
+                  aiStage={aiStage}
+                  aiProvider={settings.aiProvider}
+                  aiMode={aiMode}
+                  onSwitchProvider={(provider) => handleUpdateSettings({ aiProvider: provider })}
+                  onSwitchMode={setAiMode}
+                  onSendPrompt={handleSendPrompt}
+                  onApplyChanges={handleApplyChanges}
+                  activeFile={activeFile}
+                  files={files}
+                  githubToken={settings.githubToken}
+                  folderLinked={!!folderName}
+                  onOpenFolder={handleLinkFolder}
+                  currentUser={currentUser}
+                  onLoginWithGoogle={handleLoginWithGoogle}
+                  onLoginWithGitHub={handleLoginWithGitHub}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* ── Mode 4: Code Editor Only (100%) ── */}
+          {viewMode === 'editor' && (
+            <div className="w-full h-full flex flex-col bg-[#1e1f20]/50">
+              <VSCodeTabBar
+                files={files}
+                activeFile={activeFile}
+                onSelectFile={handleSelectFile}
+                viewMode={viewMode}
+                setViewMode={setViewMode}
+                splitOrientation={splitOrientation}
+                setSplitOrientation={setSplitOrientation}
+                onRunPreview={() => setViewMode('preview')}
+                onOpenAI={() => setViewMode('agent')}
+              />
+              <div className="flex-1 overflow-hidden relative">
+                <CodeEditor
+                  file={activeFile}
+                  onChange={handleEditorChange}
+                  onSave={handleSaveFile}
+                  isSaved={true}
+                  folderLinked={!!folderName}
+                  folderName={folderName || undefined}
+                  onOpenFolder={handleLinkFolder}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* ── Mode 5: Live Web Preview Only (100%) ── */}
+          {viewMode === 'preview' && (
+            <div className="w-full h-full bg-[#05070d]">
+              <LivePreview
+                files={files}
+                onAutoFixError={handleAutoFixError}
+                isFixing={isFixingBug}
+              />
+            </div>
+          )}
+
+          {/* ── Mode 6: AI Agent Only (100%) ── */}
+          {viewMode === 'agent' && (
+            <div className="w-full h-full bg-[#18181b]/95">
+              <AIAgentPanel
+                messages={messages}
+                aiStage={aiStage}
+                aiProvider={settings.aiProvider}
+                aiMode={aiMode}
+                onSwitchProvider={(provider) => handleUpdateSettings({ aiProvider: provider })}
+                onSwitchMode={setAiMode}
+                onSendPrompt={handleSendPrompt}
+                onApplyChanges={handleApplyChanges}
+                activeFile={activeFile}
+                files={files}
+                githubToken={settings.githubToken}
+                folderLinked={!!folderName}
+                onOpenFolder={handleLinkFolder}
+                currentUser={currentUser}
+                onLoginWithGoogle={handleLoginWithGoogle}
+                onLoginWithGitHub={handleLoginWithGitHub}
+              />
+            </div>
+          )}
         </div>
 
-        {/* Desktop AI Agent Panel on right */}
-        {activePanel === 'agent' && (
-          <div className="w-80 lg:w-96 h-full border-l border-[#2b2b2b] shrink-0 z-20 flex flex-col bg-[#181818]">
+        {/* Optional Secondary AI Panel if explicitly triggered via Activity Bar in non-tri mode */}
+        {viewMode !== 'tri' && viewMode !== 'preview-agent' && viewMode !== 'agent' && activePanel === 'agent' && (
+          <div className="w-80 lg:w-96 h-full border-l border-[#282a2c] shrink-0 z-20 flex flex-col bg-[#18181b]/95">
             <AIAgentPanel
               messages={messages}
               aiStage={aiStage}

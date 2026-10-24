@@ -10,7 +10,7 @@ export interface WorkspaceFile {
 
 export type ActivePanel = 'explorer' | 'editor' | 'preview' | 'agent' | 'git'
 
-export type ViewMode = 'editor' | 'split' | 'preview'
+export type ViewMode = 'tri' | 'split' | 'preview-agent' | 'editor' | 'preview' | 'agent'
 export type SplitOrientation = 'horizontal' | 'vertical'
 
 export type AIStage = 'idle' | 'planning' | 'generating' | 'reviewing' | 'debugging' | 'done'

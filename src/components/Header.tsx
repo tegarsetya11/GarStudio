@@ -14,7 +14,7 @@ import {
 } from 'lucide-react'
 import { GithubIcon } from './GithubIcon'
 import { GoogleIcon } from './GoogleIcon'
-import type { UserSession, WorkspaceFile } from '../types'
+import type { UserSession, ViewMode, WorkspaceFile } from '../types'
 
 interface HeaderProps {
   folderName: string | null
@@ -28,6 +28,10 @@ interface HeaderProps {
   onLogout?: () => void
   onOpenLogin?: () => void
   onOpenTutorial?: () => void
+  viewMode?: ViewMode
+  onViewModeChange?: (mode: ViewMode) => void
+  onToggleExplorer?: () => void
+  isExplorerOpen?: boolean
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -42,6 +46,10 @@ export const Header: React.FC<HeaderProps> = ({
   onLogout,
   onOpenLogin,
   onOpenTutorial,
+  viewMode = 'tri',
+  onViewModeChange,
+  onToggleExplorer,
+  isExplorerOpen,
 }) => {
   const [showExitModal, setShowExitModal] = useState(false)
   const [showSignOutModal, setShowSignOutModal] = useState(false)
@@ -62,39 +70,124 @@ export const Header: React.FC<HeaderProps> = ({
   const isGoogle = currentUser?.provider === 'google'
 
   return (
-    <header className="h-9 bg-[#181818] border-b border-[#2b2b2b] px-2 flex items-center justify-between shrink-0 select-none z-20 text-slate-300 text-xs">
-      {/* Left: VS Code Brand & Pseudo-Menus */}
+    <header className="h-11 bg-[#131314]/95 backdrop-blur-md border-b border-[#282a2c] px-3 flex items-center justify-between shrink-0 select-none z-30 text-slate-300 text-xs">
+      {/* Left: Google Gemini Sparkle Brand & File Explorer Button */}
       <div className="flex items-center gap-2">
-        <div className="flex items-center gap-1.5 font-bold text-xs text-white">
-          <img src="/garstudio-icon.png" alt="GarStudio" className="w-5 h-5 object-contain" />
-          <span className="hidden sm:inline font-extrabold bg-gradient-to-r from-cyan-400 via-sky-300 to-indigo-300 bg-clip-text text-transparent tracking-tight">
-            GarStudio
-          </span>
+        <div className="flex items-center gap-2">
+          {/* Google Gemini 4-pointed Star Sparkle Icon */}
+          <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-[#4285f4] via-[#9b72cf] to-[#d96570] p-[1.5px] shadow-lg shadow-indigo-500/15 flex items-center justify-center">
+            <div className="w-full h-full bg-[#131314] rounded-[10px] flex items-center justify-center">
+              <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="url(#geminiGlow)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <defs>
+                  <linearGradient id="geminiGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#4285f4" />
+                    <stop offset="50%" stopColor="#9b72cf" />
+                    <stop offset="100%" stopColor="#d96570" />
+                  </linearGradient>
+                </defs>
+                <path d="M12 2L14.4 9.6L22 12L14.4 14.4L12 22L9.6 14.4L2 12L9.6 9.6L12 2Z" fill="url(#geminiGlow)" fillOpacity="0.8" />
+              </svg>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="font-extrabold text-sm tracking-tight text-white">GarStudio</span>
+            <span className="hidden md:inline-flex text-[10px] font-medium bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent border border-purple-500/30 px-1.5 py-0.5 rounded-full">
+              Gemini Canvas
+            </span>
+          </div>
         </div>
 
-        {/* VS Code Classic Menus */}
-        <div className="hidden lg:flex items-center gap-1 text-[11px] text-slate-400 pl-2">
-          <span className="px-1.5 py-0.5 rounded hover:bg-[#2a2d2e] cursor-pointer">File</span>
-          <span className="px-1.5 py-0.5 rounded hover:bg-[#2a2d2e] cursor-pointer">Edit</span>
-          <span className="px-1.5 py-0.5 rounded hover:bg-[#2a2d2e] cursor-pointer">Selection</span>
-          <span className="px-1.5 py-0.5 rounded hover:bg-[#2a2d2e] cursor-pointer">View</span>
-          <span className="px-1.5 py-0.5 rounded hover:bg-[#2a2d2e] cursor-pointer">Run</span>
-        </div>
+        {/* File Explorer Toggle Pill */}
+        {onToggleExplorer && (
+          <button
+            onClick={onToggleExplorer}
+            className={`hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-semibold transition border ${
+              isExplorerOpen
+                ? 'bg-blue-500/15 text-blue-300 border-blue-500/30 shadow-sm shadow-blue-500/20'
+                : 'bg-[#1e1f20] hover:bg-[#282a2c] text-slate-300 border-[#2d2f31]'
+            }`}
+            title="Buka / Tutup File Explorer"
+          >
+            <FolderOpen className="w-3.5 h-3.5 text-blue-400" />
+            <span>Files</span>
+          </button>
+        )}
       </div>
 
-      {/* Center: Command Palette / Title Bar */}
-      <div className="flex-1 max-w-sm mx-2">
-        <div className="flex items-center justify-center gap-1 px-3 py-0.5 bg-[#252526] hover:bg-[#2a2d2e] border border-[#333333] rounded text-[11px] text-slate-300 cursor-pointer truncate">
-          <span className="text-cyan-400 font-mono font-medium truncate">
-            {activeFile ? activeFile.name : 'index.html'}
-          </span>
-          <span className="text-slate-500 font-normal">—</span>
-          <span className="text-slate-400 truncate">{folderName ? folderName : 'GarStudio Workspace'}</span>
+      {/* Center: Gemini 3-Panel View Mode Switcher Pills */}
+      {onViewModeChange && (
+        <div className="hidden md:flex items-center bg-[#1e1f20] p-1 rounded-2xl border border-[#282a2c] shadow-inner text-xs gap-1">
+          <button
+            onClick={() => onViewModeChange('tri')}
+            className={`px-3 py-1 rounded-xl flex items-center gap-1.5 text-[11px] font-bold transition active:scale-95 cursor-pointer ${
+              viewMode === 'tri'
+                ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-500/25 border border-indigo-400/30'
+                : 'text-slate-400 hover:text-white'
+            }`}
+            title="3 Penampil Sekaligus (Code Editor + Web Preview + AI Agent)"
+          >
+            <span className="text-amber-300">✨</span>
+            <span>3-Panel Tri-View</span>
+          </button>
+
+          <button
+            onClick={() => onViewModeChange('split')}
+            className={`px-2.5 py-1 rounded-xl flex items-center gap-1 text-[11px] font-semibold transition active:scale-95 cursor-pointer ${
+              viewMode === 'split'
+                ? 'bg-[#282a2c] text-cyan-300 border border-cyan-500/30'
+                : 'text-slate-400 hover:text-white'
+            }`}
+            title="Code + Web Preview"
+          >
+            <span>💻 Code + 🌐 Preview</span>
+          </button>
+
+          <button
+            onClick={() => onViewModeChange('preview-agent')}
+            className={`px-2.5 py-1 rounded-xl flex items-center gap-1 text-[11px] font-semibold transition active:scale-95 cursor-pointer ${
+              viewMode === 'preview-agent'
+                ? 'bg-[#282a2c] text-purple-300 border border-purple-500/30'
+                : 'text-slate-400 hover:text-white'
+            }`}
+            title="Web Preview + AI Agent"
+          >
+            <span>🌐 Preview + 🤖 AI</span>
+          </button>
+
+          <button
+            onClick={() => onViewModeChange('editor')}
+            className={`px-2 py-1 rounded-xl text-[11px] transition active:scale-95 cursor-pointer ${
+              viewMode === 'editor' ? 'bg-[#282a2c] text-white' : 'text-slate-400 hover:text-white'
+            }`}
+            title="Hanya Code Editor"
+          >
+            💻 Code
+          </button>
+
+          <button
+            onClick={() => onViewModeChange('preview')}
+            className={`px-2 py-1 rounded-xl text-[11px] transition active:scale-95 cursor-pointer ${
+              viewMode === 'preview' ? 'bg-[#282a2c] text-white' : 'text-slate-400 hover:text-white'
+            }`}
+            title="Hanya Web Preview"
+          >
+            🌐 Preview
+          </button>
+
+          <button
+            onClick={() => onViewModeChange('agent')}
+            className={`px-2 py-1 rounded-xl text-[11px] transition active:scale-95 cursor-pointer ${
+              viewMode === 'agent' ? 'bg-[#282a2c] text-white' : 'text-slate-400 hover:text-white'
+            }`}
+            title="Hanya AI Agent"
+          >
+            🤖 AI Agent
+          </button>
         </div>
-      </div>
+      )}
 
       {/* Right: Quick Action Controls */}
-      <div className="flex items-center gap-1 shrink-0">
+      <div className="flex items-center gap-1.5 shrink-0">
 
         {/* Push to GitHub */}
         <button
