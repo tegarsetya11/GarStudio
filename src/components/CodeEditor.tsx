@@ -16,12 +16,16 @@ interface CodeEditorProps {
   onChange: (content: string) => void
   onSave?: () => void
   isSaved?: boolean
+  folderLinked?: boolean
+  folderName?: string
 }
 
 export const CodeEditor: React.FC<CodeEditorProps> = ({
   file,
   onChange,
   onSave,
+  folderLinked = false,
+  folderName,
 }) => {
   const editorContainerRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
@@ -149,12 +153,49 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
   ]
 
   if (!file) {
+    if (folderLinked) {
+      // Folder sudah dihubungkan tapi belum ada file terbuka
+      return (
+        <div className="flex flex-col items-center justify-center h-full text-slate-500 p-6 text-center bg-[#1e1e1e] gap-4">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-cyan-500/20 to-indigo-500/20 border border-cyan-500/20 flex items-center justify-center">
+            <span className="text-3xl">🚀</span>
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-base font-bold text-slate-200">
+              {folderName ? `📂 "${folderName}" siap!` : '📂 Folder siap!'}
+            </h3>
+            <p className="text-xs text-slate-400 max-w-xs leading-relaxed">
+              Workspace Anda sudah terhubung. Mulai bangun website impian Anda
+              sekarang — ketik perintah ke{' '}
+              <span className="text-cyan-400 font-semibold">AI Agent</span>{' '}
+              di bawah atau buat file baru.
+            </p>
+          </div>
+          <div className="flex flex-col gap-2 text-[11px] text-slate-500 bg-slate-900/50 border border-slate-800 rounded-2xl px-4 py-3 max-w-xs">
+            <div className="flex items-center gap-2">
+              <span className="text-cyan-400">💬</span>
+              <span>"Buat landing page modern untuk toko online saya"</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-indigo-400">💬</span>
+              <span>"Buat portfolio dengan animasi smooth"</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-emerald-400">💬</span>
+              <span>"Buat website profil dengan dark mode"</span>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    // Belum ada folder yang dihubungkan
     return (
       <div className="flex flex-col items-center justify-center h-full text-slate-500 p-6 text-center bg-[#1e1e1e]">
         <FileCode className="w-12 h-12 mb-3 text-slate-600 stroke-[1.5]" />
-        <h3 className="text-sm font-medium text-slate-400">No File Open</h3>
+        <h3 className="text-sm font-medium text-slate-400">Belum Ada File</h3>
         <p className="text-xs text-slate-500 mt-1 max-w-xs">
-          Select a file from the Explorer or let the AI Agent generate a new feature.
+          Hubungkan folder perangkat Anda atau gunakan AI Agent untuk mulai membuat website.
         </p>
       </div>
     )

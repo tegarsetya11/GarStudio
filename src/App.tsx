@@ -446,6 +446,8 @@ export const App: React.FC = () => {
           githubToken={settings.githubToken}
           previewVisible={mobilePreviewVisible}
           onTogglePreview={() => setMobilePreviewVisible((v) => !v)}
+          folderLinked={!!folderName}
+          folderName={folderName || undefined}
         />
       </div>
 
