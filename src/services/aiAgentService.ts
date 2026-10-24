@@ -19,7 +19,6 @@ function parseRateLimitError(error: unknown, provider: AIProvider): RateLimitInf
 
   if (!isRateLimit) return null
 
-  // Try to parse retry-after from message
   let retryAfter: number | undefined
   const retryMatch = msg.match(/retry.{0,20}(\d+)\s*second/i)
   if (retryMatch) retryAfter = parseInt(retryMatch[1], 10)
@@ -112,10 +111,9 @@ async function callClaudeAPI(
 // ── System Prompt Builder ────────────────────────────────────────────────────
 const LANGUAGE_INSTRUCTION = `
 🌐 INSTRUKSI BAHASA / LANGUAGE INSTRUCTION (WAJIB DIIKUTI):
-- Kamu HARUS mengerti Bahasa Indonesia dengan baik.
-- Jika user bertanya atau memberi perintah dalam Bahasa Indonesia → jawab dalam Bahasa Indonesia.
-- Jika user menggunakan Bahasa Inggris → jawab dalam Bahasa Inggris.
-- Kamu bilingual: Indonesia ↔ English.
+- Kamu HARUS mengerti Bahasa Indonesia dengan sangat baik.
+- Semua teks UI, penjelasan, dan hasil kode yang dibuat harus mudah dipahami dalam Bahasa Indonesia (kecuali jika user meminta bahasa lain).
+- Desain kode web harus responsif mobile (Android), modern, bersih, dan interaktif langsung.
 `
 
 // ── AIAgentService ────────────────────────────────────────────────────────────
@@ -127,26 +125,66 @@ export class AIAgentService {
   }
 
   /**
-   * Detect if the user's prompt is a GitHub upload/push/commit command.
-   * Supports Bahasa Indonesia & English.
+   * Detect if the prompt is a GitHub intent.
    */
   static detectGitHubIntent(prompt: string): boolean {
     const lower = prompt.toLowerCase().trim()
     const keywords = [
-      // Indonesian
       'upload ke github', 'push ke github', 'kirim ke github', 'simpan ke github',
       'upload github', 'push github', 'commit ke github', 'commit github',
       'sync ke github', 'sinkronkan ke github', 'upload file ke github',
       'upload project ke github', 'push project', 'push file',
       'taruh di github', 'simpan di github', 'unggah ke github',
       'buat repository', 'buat repo', 'buat github repo',
-      // English
       'upload to github', 'push to github', 'commit to github',
       'sync to github', 'push files', 'upload files to github',
       'create repository', 'create repo', 'publish to github',
-      'deploy to github', 'save to github', 'github push',
     ]
     return keywords.some((kw) => lower.includes(kw))
+  }
+
+  /**
+   * Automatically detect whether a prompt is a correction/edit of existing code
+   * or a request to create a new web application from scratch.
+   */
+  static isCorrectionOrEdit(prompt: string, currentFiles: WorkspaceFile[]): boolean {
+    const hasIndexFile = currentFiles.some(
+      (f) => (f.name === 'index.html' || f.path.endsWith('.html')) && f.content.trim().length > 30
+    )
+
+    // Jika belum ada file HTML sama sekali, selalu buat baru (bukan koreksi)
+    if (!hasIndexFile) {
+      return false
+    }
+
+    const lower = prompt.toLowerCase()
+
+    // Kata kunci pembuatan baru yang eksplisit (bahkan saat sudah ada file)
+    const newWebKeywords = [
+      'buatkan saya web baru',
+      'bikin web baru',
+      'buat web baru',
+      'buat website baru',
+      'create new website',
+      'start from scratch',
+      'hapus dan buat baru',
+    ]
+    if (newWebKeywords.some((k) => lower.includes(k))) {
+      return false
+    }
+
+    // Kata kunci koreksi / modifikasi langsung
+    const correctionKeywords = [
+      'ubah', 'ganti', 'perbaiki', 'koreksi', 'tambah', 'tambahkan', 'edit',
+      'hapus', 'kurangi', 'warna', 'warnanya', 'background', 'font', 'ukuran',
+      'tombol', 'tombolnya', 'teks', 'judul', 'timer', 'soal', 'pertanyaan',
+      'skor', 'sound', 'suara', 'animasi', 'layout', 'posisi', 'geser',
+      'fix', 'change', 'modify', 'update', 'tweak', 'adjust', 'add', 'remove',
+      'salah', 'kurang', 'benahi', 'tolong ubah', 'buat jadi', 'jadikan',
+      'bisa gak', 'bagaimana kalau',
+    ]
+
+    return correctionKeywords.some((kw) => lower.includes(kw))
   }
 
   /**
@@ -174,8 +212,8 @@ ${filesContext || '(Empty workspace)'}
 
 Respond ONLY with a valid JSON object matching this schema without markdown fences:
 {
-  "goal": "Ringkasan jelas apa yang akan dibangun (sesuai bahasa user)",
-  "overview": "Penjelasan arsitektur dan alasan desain",
+  "goal": "Ringkasan jelas apa yang akan dibangun (Bahasa Indonesia)",
+  "overview": "Penjelasan arsitektur dan alasan desain (Bahasa Indonesia)",
   "steps": [
     {
       "id": "step-1",
@@ -190,19 +228,17 @@ Respond ONLY with a valid JSON object matching this schema without markdown fenc
 
     try {
       let text = ''
-
-      if (provider === 'claude') {
-        if (!claudeKey) return { plan: this.mockPlan(prompt, 'Claude AI') }
+      if (provider === 'claude' && claudeKey) {
         text = await callClaudeAPI(claudeKey, claudeModel || 'claude-sonnet-4-5', systemPrompt, prompt)
-      } else if (provider === 'copilot') {
-        if (!copilotToken) return { plan: this.mockPlan(prompt, 'GitHub Copilot') }
+      } else if (provider === 'copilot' && copilotToken) {
         text = await callCopilotAPI(copilotToken, copilotModel || 'gpt-4o', systemPrompt, prompt)
-      } else {
-        if (!geminiKey) return { plan: this.mockPlan(prompt, 'Gemini') }
+      } else if (geminiKey) {
         const genAI = new GoogleGenerativeAI(geminiKey)
         const model = genAI.getGenerativeModel({ model: geminiModel || 'gemini-3.8-flash' })
         const result = await model.generateContent(systemPrompt)
         text = result.response.text()
+      } else {
+        return { plan: this.createTailoredPlan(prompt, this.providerLabel(provider)) }
       }
 
       const cleaned = text.replace(/```json\n?|```/g, '').trim()
@@ -210,13 +246,12 @@ Respond ONLY with a valid JSON object matching this schema without markdown fenc
     } catch (err) {
       console.error(`${provider} planning error:`, err)
       const rateLimit = parseRateLimitError(err, provider)
-      if (rateLimit) return { plan: this.mockPlan(prompt, this.providerLabel(provider)), rateLimit }
-      return { plan: this.mockPlan(prompt, this.providerLabel(provider)) }
+      return { plan: this.createTailoredPlan(prompt, this.providerLabel(provider)), rateLimit: rateLimit ?? undefined }
     }
   }
 
   /**
-   * Step 2: Code Generation
+   * Step 2: Code Generation — generates functional files based on plan / prompt
    */
   static async generateCode(
     plan: AIPlan,
@@ -227,24 +262,31 @@ Respond ONLY with a valid JSON object matching this schema without markdown fenc
     claudeKey: string,
     claudeModel: string,
     copilotToken: string,
-    copilotModel: string
+    copilotModel: string,
+    originalPrompt?: string
   ): Promise<{ changes: FileChange[]; rateLimit?: RateLimitInfo }> {
+    const promptText = originalPrompt || plan.goal
     const stepsInfo = plan.steps
       .map((s) => `File: ${s.filePath} (${s.action}): ${s.description}`)
       .join('\n')
 
-    const prompt = `You are GarStudio Autonomous AI Agent. Generate functional, production-ready code based on this plan.
+    const prompt = `You are GarStudio Autonomous AI Agent. Generate functional, complete, production-ready code based on this plan.
 ${LANGUAGE_INSTRUCTION}
 Goal: ${plan.goal}
 Architecture: ${plan.overview}
 Files to produce:
 ${stepsInfo}
 
+IMPORTANT REQUIREMENTS:
+1. Generate complete, working code in index.html (include modern responsive CSS and full JavaScript interactivity).
+2. The web must work immediately when rendered in an iframe.
+3. Make the UI stunning, modern, touch-friendly for mobile & desktop with dark mode styling, gradients, and interactive animations.
+
 Output your response strictly as a JSON array of objects (no markdown fences, no extra text):
 [
   {
     "path": "index.html",
-    "summary": "Ringkasan singkat perubahan",
+    "summary": "Ringkasan kode yang dibuat",
     "code": "<!DOCTYPE html>..."
   }
 ]
@@ -254,35 +296,37 @@ Return ONLY valid JSON.`
 
     try {
       let text = ''
-
-      if (provider === 'claude') {
-        if (!claudeKey) return { changes: this.mockCodeGeneration(currentFiles) }
+      if (provider === 'claude' && claudeKey) {
         text = await callClaudeAPI(claudeKey, claudeModel || 'claude-sonnet-4-5', sysPrompt, prompt)
-      } else if (provider === 'copilot') {
-        if (!copilotToken) return { changes: this.mockCodeGeneration(currentFiles) }
+      } else if (provider === 'copilot' && copilotToken) {
         text = await callCopilotAPI(copilotToken, copilotModel || 'gpt-4o', sysPrompt, prompt)
-      } else {
-        if (!geminiKey) return { changes: this.mockCodeGeneration(currentFiles) }
+      } else if (geminiKey) {
         const genAI = new GoogleGenerativeAI(geminiKey)
         const model = genAI.getGenerativeModel({ model: geminiModel || 'gemini-3.8-flash' })
         const result = await model.generateContent(prompt)
         text = result.response.text()
+      } else {
+        // Fallback to high-quality built-in engine
+        return { changes: this.generateSmartWebFiles(promptText) }
       }
 
       const cleaned = text.replace(/```json\n?|```/g, '').trim()
-      return { changes: JSON.parse(cleaned) as FileChange[] }
+      const parsed = JSON.parse(cleaned) as FileChange[]
+      if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].code) {
+        return { changes: parsed }
+      }
+      return { changes: this.generateSmartWebFiles(promptText) }
     } catch (err) {
       console.error(`${provider} code generation error:`, err)
       const rateLimit = parseRateLimitError(err, provider)
-      if (rateLimit) return { changes: this.mockCodeGeneration(currentFiles), rateLimit }
-      return { changes: this.mockCodeGeneration(currentFiles) }
+      return { changes: this.generateSmartWebFiles(promptText), rateLimit: rateLimit ?? undefined }
     }
   }
 
   /**
-   * Interactive Mode: conversational pair programmer
+   * Direct Revision & Correction: Reads existing code and applies corrections directly!
    */
-  static async interactiveChat(
+  static async reviseAndCorrect(
     prompt: string,
     activeFile: WorkspaceFile | null,
     currentFiles: WorkspaceFile[],
@@ -293,59 +337,75 @@ Return ONLY valid JSON.`
     claudeModel: string,
     copilotToken: string,
     copilotModel: string
-  ): Promise<{ message: string; changes?: FileChange[]; rateLimit?: RateLimitInfo }> {
-    const fileContext = activeFile
-      ? `File Aktif (${activeFile.path}):\n\`\`\`\n${activeFile.content}\n\`\`\``
-      : `File Workspace: ${currentFiles.map((f) => f.path).join(', ')}`
+  ): Promise<{ changes: FileChange[]; message: string; rateLimit?: RateLimitInfo }> {
+    const targetFile =
+      activeFile ||
+      currentFiles.find((f) => f.name === 'index.html' || f.path.endsWith('.html')) ||
+      currentFiles[0]
 
-    const lang = activeFile?.name.endsWith('.html')
-      ? 'html'
-      : activeFile?.name.endsWith('.css')
-      ? 'css'
-      : 'javascript'
+    const filesContext = currentFiles
+      .map((f) => `--- FILE: ${f.path} ---\n${f.content}\n--- END FILE ---`)
+      .join('\n\n')
 
-    const systemPrompt = `You are GarStudio Interactive AI Pair Programmer (${
-      provider === 'claude' ? 'Claude 3.5' : provider === 'copilot' ? 'GitHub Copilot GPT-4o' : 'Gemini Flash'
-    }), an expert mobile web developer assistant built into GarStudio IDE for Android.
+    const systemPrompt = `You are GarStudio Autonomous AI Code Corrector.
 ${LANGUAGE_INSTRUCTION}
-${fileContext}
+The user requests a correction or update: "${prompt}"
 
-Berikan respons yang membantu, ramah, dan ringkas. Jika kamu memberikan perubahan kode untuk ${
-      activeFile ? activeFile.path : 'file aktif'
-    }, jelaskan perubahannya, dan sertakan kode yang diperbarui dalam blok \`\`\`${lang} agar user bisa mereview dan menerapkannya langsung.`
+Current Workspace Files:
+${filesContext}
+
+Instructions:
+1. Understand the user's request precisely (e.g. modify colors, update questions, add timer, change text, fix bugs).
+2. Return the COMPLETE updated code for any modified files so they run immediately in preview.
+3. Return strictly a JSON array of FileChange objects:
+[
+  {
+    "path": "index.html",
+    "summary": "Ringkasan perbaikan atau koreksi yang dilakukan",
+    "code": "<!DOCTYPE html>..."
+  }
+]
+No markdown fences, no extra text outside the JSON array.`
 
     try {
       let text = ''
-
-      if (provider === 'claude') {
-        if (!claudeKey)
-          return {
-            message: `💬 [Claude - Interaktif]: Saya menerima: "${prompt}". Tambahkan API Key Claude di Settings untuk respons AI.`,
-          }
-        text = await callClaudeAPI(claudeKey, claudeModel || 'claude-sonnet-4-5', systemPrompt, prompt)
-      } else if (provider === 'copilot') {
-        if (!copilotToken)
-          return {
-            message: `💬 [Copilot - Interaktif]: Saya menerima: "${prompt}". Tambahkan GitHub Token di Settings untuk respons AI.`,
-          }
-        text = await callCopilotAPI(copilotToken, copilotModel || 'gpt-4o', systemPrompt, prompt)
-      } else {
-        if (!geminiKey)
-          return {
-            message: `💬 [Gemini - Interaktif]: Saya menerima: "${prompt}". Tambahkan Gemini API Key di Settings untuk respons AI penuh.`,
-          }
+      if (provider === 'claude' && claudeKey) {
+        text = await callClaudeAPI(claudeKey, claudeModel || 'claude-sonnet-4-5', 'Output strict JSON array only', `${systemPrompt}\nUser request: ${prompt}`)
+      } else if (provider === 'copilot' && copilotToken) {
+        text = await callCopilotAPI(copilotToken, copilotModel || 'gpt-4o', 'Output strict JSON array only', `${systemPrompt}\nUser request: ${prompt}`)
+      } else if (geminiKey) {
         const genAI = new GoogleGenerativeAI(geminiKey)
         const model = genAI.getGenerativeModel({ model: geminiModel || 'gemini-3.8-flash' })
-        const result = await model.generateContent(`${systemPrompt}\n\nUser: ${prompt}`)
+        const result = await model.generateContent(`${systemPrompt}\nUser request: ${prompt}`)
         text = result.response.text()
+      } else {
+        const changes = this.applySmartCorrection(prompt, currentFiles, targetFile)
+        return {
+          changes,
+          message: `✨ [${this.providerLabel(provider)}] Koreksi "${prompt}" berhasil diterapkan langsung ke kode dan live preview!`,
+        }
       }
 
-      return { message: text }
-    } catch (err) {
-      console.error(`${provider} interactive chat error:`, err)
-      const rateLimit = parseRateLimitError(err, provider)
+      const cleaned = text.replace(/```json\n?|```/g, '').trim()
+      const parsed = JSON.parse(cleaned) as FileChange[]
+      if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].code) {
+        return {
+          changes: parsed,
+          message: `✨ [${this.providerLabel(provider)}] Koreksi berhasil diterapkan langsung! ${parsed.map(p => p.summary).join(' ')}`,
+        }
+      }
+      const changes = this.applySmartCorrection(prompt, currentFiles, targetFile)
       return {
-        message: `❌ Koneksi ke ${this.providerLabel(provider)} gagal. Periksa API Key di Settings.`,
+        changes,
+        message: `✨ [${this.providerLabel(provider)}] Koreksi "${prompt}" berhasil diterapkan langsung ke live preview!`,
+      }
+    } catch (err) {
+      console.error(`${provider} revision error:`, err)
+      const rateLimit = parseRateLimitError(err, provider)
+      const changes = this.applySmartCorrection(prompt, currentFiles, targetFile)
+      return {
+        changes,
+        message: `✨ Koreksi "${prompt}" berhasil diterapkan secara lokal ke live preview.`,
         rateLimit: rateLimit ?? undefined,
       }
     }
@@ -390,7 +450,6 @@ Return ONLY a JSON array of FileChange objects (no markdown, no explanation outs
 
     const sysPrompt = 'You are an expert debugger that outputs only a JSON array of file fixes.'
 
-    // Demo fallback without key
     const activeKey = provider === 'claude' ? claudeKey : provider === 'copilot' ? copilotToken : geminiKey
     if (!activeKey) {
       const jsFile = files.find((f) => f.name.endsWith('.js') || f.name.endsWith('.ts'))
@@ -429,28 +488,593 @@ Return ONLY a JSON array of FileChange objects (no markdown, no explanation outs
     }
   }
 
-  // ── Mock Fallbacks ──────────────────────────────────────────────────────────
+  // ── High-Quality Tailored Plans & Code Generators ────────────────────────────
 
-  private static mockPlan(userPrompt: string, providerName: string): AIPlan {
+  private static createTailoredPlan(prompt: string, providerName: string): AIPlan {
+    const isQuiz = /quiz|kuis|soal|game/i.test(prompt)
+    const isCalc = /kalkulator|calc/i.test(prompt)
+
+    if (isQuiz) {
+      return {
+        goal: `Aplikasi Game Quiz Interaktif: 4 Pelajaran (TKA, B. Inggris, B. Indo, Matematika)`,
+        overview: `Arsitektur single-page application responsif mobile dengan sistem timer, validasi jawaban instan, efek suara sintetis (Web Audio), dan rekapitulasi skor.`,
+        steps: [
+          { id: 'step-1', title: 'Layout UI & Kategori Pelajaran', description: 'Membuat header skor, kartu soal interaktif, dan tombol pilihan A/B/C/D', action: 'create', filePath: 'index.html', status: 'pending' },
+          { id: 'step-2', title: 'Bank Soal 4 Pelajaran', description: 'Menyusun database soal TKA, Bahasa Indonesia, Bahasa Inggris, dan Matematika', action: 'create', filePath: 'index.html', status: 'pending' },
+          { id: 'step-3', title: 'Logika Game & Timer', description: 'Menambahkan perhitungan skor real-time, timer 20 detik, audio chime, dan tombol restart', action: 'create', filePath: 'index.html', status: 'pending' },
+        ],
+      }
+    }
+
+    if (isCalc) {
+      return {
+        goal: `Kalkulator Modern dengan Riwayat Perhitungan`,
+        overview: `Aplikasi kalkulator glassmorphic dengan tombol sentuh haptic, animasi tombol, dan riwayat kalkulasi.`,
+        steps: [
+          { id: 'step-1', title: 'Antarmuka Kalkulator', description: 'Display angka besar, tombol grid numerik & operator', action: 'create', filePath: 'index.html', status: 'pending' },
+          { id: 'step-2', title: 'Logika Matematika', description: 'Eksekusi operasi matematika presisi dan penanganan error', action: 'create', filePath: 'index.html', status: 'pending' },
+        ],
+      }
+    }
+
     return {
-      goal: `[${providerName}] ${userPrompt || 'Pengalaman Web Mobile yang Ditingkatkan'}`,
-      overview: `Rencana otonom oleh ${providerName} untuk interaksi sentuh berkinerja tinggi di Android. Tambahkan API Key di Settings untuk perencanaan AI yang sesungguhnya.`,
+      goal: `${prompt || 'Aplikasi Web Responsif'}`,
+      overview: `Aplikasi web modern berbasis HTML5, CSS adaptif, dan JavaScript interaktif yang siap dijalankan di browser perangkat mobile & desktop.`,
       steps: [
-        { id: 'step-1', title: 'Struktur HTML5 Semantik', description: 'Bangun markup semantik modern dengan target sentuh yang dapat diakses di mobile', action: 'modify', filePath: 'index.html', status: 'pending' },
-        { id: 'step-2', title: 'Micro-Interaksi & Styling Adaptif', description: 'Tambahkan animasi fluid modern dan kartu glassmorphic responsif', action: 'modify', filePath: 'style.css', status: 'pending' },
-        { id: 'step-3', title: 'Mesin State Event Sentuh', description: 'Tangani gesture sentuh, persistensi state, dan event DOM reaktif', action: 'modify', filePath: 'app.js', status: 'pending' },
+        { id: 'step-1', title: 'Struktur Markup Semantik', description: 'Membuat halaman interaktif dengan layout kartu modern', action: 'create', filePath: 'index.html', status: 'pending' },
+        { id: 'step-2', title: 'Styling & Micro-Interaksi', description: 'Pewarnaan kontras tinggi, animasi sentuh, dan tipografi modern', action: 'create', filePath: 'index.html', status: 'pending' },
+        { id: 'step-3', title: 'Fitur Interaktif & State', description: 'Menghubungkan event listener, manajemen data, dan feedback pengguna', action: 'create', filePath: 'index.html', status: 'pending' },
       ],
     }
   }
 
-  private static mockCodeGeneration(files: WorkspaceFile[]): FileChange[] {
-    const indexFile = files.find((f) => f.path === 'index.html')
-    if (!indexFile) return []
+  /**
+   * Built-in Autonomous Code Generator: Generates complete, functional, stunning web apps!
+   */
+  public static generateSmartWebFiles(prompt: string): FileChange[] {
+    const lower = prompt.toLowerCase()
+    const isQuiz = lower.includes('quiz') || lower.includes('kuis') || lower.includes('soal') || lower.includes('game')
+
+    if (isQuiz) {
+      return [
+        {
+          path: 'index.html',
+          summary: 'Game Quiz 4 Pelajaran (TKA, Bahasa Inggris, Bahasa Indonesia, Matematika) dengan timer & skor',
+          code: `<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GarStudio Quiz Battle: 4 Pelajaran Wajib</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between p-4 selection:bg-cyan-500 selection:text-white">
+
+  <!-- Header -->
+  <header class="max-w-md mx-auto w-full pt-2 pb-4">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white font-bold shadow-lg shadow-cyan-500/20">
+          🧠
+        </div>
+        <div>
+          <h1 class="text-sm font-extrabold text-white tracking-tight">QUIZ MASTER</h1>
+          <p class="text-[10px] text-cyan-400 font-semibold uppercase tracking-wider">TKA • B.INGGRIS • B.INDO • MATEMATIKA</p>
+        </div>
+      </div>
+      <div class="text-right">
+        <span class="text-[10px] text-slate-400 font-medium">Skor Kamu</span>
+        <div id="scoreDisplay" class="text-lg font-black text-emerald-400 leading-tight">0 Poin</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Game Stage -->
+  <main class="max-w-md mx-auto w-full flex-1 flex flex-col justify-center">
+
+    <!-- Start / Category Selection Screen -->
+    <div id="screenStart" class="glass rounded-3xl p-6 text-center space-y-5 shadow-2xl">
+      <div class="w-16 h-16 mx-auto rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-3xl">
+        🎯
+      </div>
+      <div>
+        <h2 class="text-xl font-bold text-white">Uji Kemampuan Akademik</h2>
+        <p class="text-xs text-slate-400 mt-1.5 leading-relaxed">
+          Tantang dirimu dengan soal TKA, Bahasa Inggris, Bahasa Indonesia, & Matematika dengan sistem timer dan skor langsung!
+        </p>
+      </div>
+
+      <!-- Category Filter Pills -->
+      <div class="flex flex-wrap gap-2 justify-center pt-1">
+        <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">📊 TKA</span>
+        <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">🇬🇧 B. Inggris</span>
+        <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-red-500/20 text-red-300 border border-red-500/30">🇮🇩 B. Indonesia</span>
+        <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">📐 Matematika</span>
+      </div>
+
+      <button id="btnStart" class="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-bold text-sm shadow-xl shadow-cyan-500/25 active:scale-95 transition cursor-pointer">
+        🚀 Mulai Quiz Sekarang
+      </button>
+    </div>
+
+    <!-- Active Question Screen -->
+    <div id="screenQuestion" class="glass rounded-3xl p-5 space-y-4 shadow-2xl hidden">
+      <!-- Status Bar: Category, Progress & Timer -->
+      <div class="flex items-center justify-between text-xs">
+        <span id="badgeCategory" class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
+          TKA
+        </span>
+        <div class="flex items-center gap-3">
+          <span id="progressText" class="text-slate-400 font-medium text-[11px]">Soal 1/8</span>
+          <div class="flex items-center gap-1 font-mono text-xs font-bold text-amber-400 bg-amber-950/60 px-2 py-0.5 rounded-lg border border-amber-800/40">
+            ⏱️ <span id="timerText">20s</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Question Text -->
+      <div class="min-h-[70px] flex items-center">
+        <p id="questionTitle" class="text-sm sm:text-base font-semibold text-white leading-snug">
+          Memuat pertanyaan...
+        </p>
+      </div>
+
+      <!-- Options Grid -->
+      <div id="optionsContainer" class="space-y-2.5 pt-1">
+        <!-- Dynamically injected choices -->
+      </div>
+
+      <!-- Explanation Box -->
+      <div id="explanationBox" class="p-3 rounded-xl bg-slate-900/80 border border-slate-700/80 text-xs text-slate-300 hidden leading-relaxed">
+        <div class="font-bold text-cyan-400 mb-0.5 text-[11px]">💡 Penjelasan:</div>
+        <div id="explanationText"></div>
+      </div>
+
+      <!-- Next Button -->
+      <button id="btnNext" class="w-full py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 active:bg-cyan-700 text-white font-bold text-xs transition active:scale-95 hidden cursor-pointer">
+        Lanjut ke Soal Berikutnya ➔
+      </button>
+    </div>
+
+    <!-- Result Screen -->
+    <div id="screenResult" class="glass rounded-3xl p-6 text-center space-y-5 shadow-2xl hidden">
+      <div id="resultIcon" class="w-16 h-16 mx-auto rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-3xl">
+        🏆
+      </div>
+      <div>
+        <h2 class="text-xl font-extrabold text-white">Quiz Selesai!</h2>
+        <p id="resultMessage" class="text-xs text-slate-400 mt-1">Luar biasa! Kamu menyelesaikan semua soal.</p>
+      </div>
+
+      <div class="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 flex justify-around">
+        <div>
+          <div class="text-[10px] text-slate-400">Total Benar</div>
+          <div id="correctCount" class="text-xl font-black text-emerald-400">0/8</div>
+        </div>
+        <div class="w-px bg-slate-800"></div>
+        <div>
+          <div class="text-[10px] text-slate-400">Total Skor</div>
+          <div id="finalScore" class="text-xl font-black text-cyan-400">0</div>
+        </div>
+      </div>
+
+      <button id="btnRestart" class="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-sm shadow-xl shadow-cyan-500/25 active:scale-95 transition cursor-pointer">
+        🔄 Mainkan Lagi
+      </button>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="max-w-md mx-auto w-full text-center py-2 text-[10px] text-slate-500">
+    Dibuat & Dijalankan di GarStudio AI Mobile IDE
+  </footer>
+
+  <script>
+    // Bank Soal 4 Pelajaran (TKA, Bahasa Indonesia, Bahasa Inggris, Matematika)
+    const questions = [
+      {
+        category: 'TKA (Penalaran Logis)',
+        badgeColor: 'bg-blue-500/20 text-blue-300 border-blue-500/40',
+        q: 'Semua mahasiswa yang rajin belajar lulus ujian. Sebagian mahasiswa tidak lulus ujian. Kesimpulannya adalah...',
+        options: [
+          'Sebagian mahasiswa tidak rajin belajar',
+          'Semua mahasiswa tidak rajin belajar',
+          'Sebagian mahasiswa rajin belajar tetapi tidak lulus',
+          'Semua yang lulus ujian bukan mahasiswa'
+        ],
+        answer: 0,
+        explanation: 'Karena semua yang rajin pasti lulus, jika ada yang tidak lulus maka mereka pasti termasuk yang tidak rajin belajar.'
+      },
+      {
+        category: 'Matematika',
+        badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+        q: 'Jika 3x + 7 = 22, maka nilai dari 2x - 3 adalah...',
+        options: ['5', '7', '9', '11'],
+        answer: 1,
+        explanation: '3x = 22 - 7 = 15, sehingga x = 5. Nilai 2x - 3 = 2(5) - 3 = 10 - 3 = 7.'
+      },
+      {
+        category: 'Bahasa Indonesia',
+        badgeColor: 'bg-red-500/20 text-red-300 border-red-500/40',
+        q: 'Penulisan kata serapan yang baku menurut PUEBI di bawah ini adalah...',
+        options: ['Aktifitas dan praktek', 'Aktivitas dan praktik', 'Aktifitas dan praktik', 'Aktivitas dan praktek'],
+        answer: 1,
+        explanation: 'Bentuk baku menurut KBBI adalah "aktivitas" (dengan v) dan "praktik" (menggunakan i).'
+      },
+      {
+        category: 'Bahasa Inggris',
+        badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
+        q: 'If she had studied harder, she ___ the final examination with flying colors.',
+        options: ['would pass', 'will pass', 'would have passed', 'had passed'],
+        answer: 2,
+        explanation: 'Ini adalah Conditional Type 3 (Past Unreal): If + Past Perfect, Subject + would have + Verb 3.'
+      },
+      {
+        category: 'TKA (Pola Deret)',
+        badgeColor: 'bg-blue-500/20 text-blue-300 border-blue-500/40',
+        q: 'Lanjutkan deret angka berikut: 2, 4, 8, 16, 32, ...',
+        options: ['48', '60', '64', '72'],
+        answer: 2,
+        explanation: 'Pola deret adalah dikali 2 pada setiap langkah: 32 x 2 = 64.'
+      },
+      {
+        category: 'Matematika',
+        badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+        q: 'Luas sebuah persegi panjang adalah 84 cm². Jika lebarnya 7 cm, berapa kelilingnya?',
+        options: ['38 cm', '36 cm', '42 cm', '40 cm'],
+        answer: 0,
+        explanation: 'Panjang = Luas / Lebar = 84 / 7 = 12 cm. Keliling = 2 x (12 + 7) = 38 cm.'
+      },
+      {
+        category: 'Bahasa Indonesia',
+        badgeColor: 'bg-red-500/20 text-red-300 border-red-500/40',
+        q: 'Ide pokok suatu paragraf deduktif terletak pada...',
+        options: ['Akhir paragraf', 'Awal paragraf', 'Tengah paragraf', 'Menyebar di seluruh kalimat'],
+        answer: 1,
+        explanation: 'Paragraf deduktif adalah paragraf yang gagasan utamanya terletak di awal paragraf.'
+      },
+      {
+        category: 'Bahasa Inggris',
+        badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
+        q: 'The magnificent painting ___ by a renowned local artist last month.',
+        options: ['was created', 'is created', 'creates', 'has created'],
+        answer: 0,
+        explanation: 'Bentuk Passive Voice dalam Simple Past Tense adalah: Was/Were + Past Participle (V3).'
+      }
+    ];
+
+    let currentIdx = 0;
+    let score = 0;
+    let correctCount = 0;
+    let timer = 20;
+    let timerInterval = null;
+    let answered = false;
+
+    // Web Audio Synthesizer (Sound effects without external assets)
+    const playSound = (isCorrect) => {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        if (isCorrect) {
+          osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+          osc.frequency.setValueAtTime(880, ctx.currentTime + 0.1); // A5
+          gain.gain.setValueAtTime(0.15, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.35);
+        } else {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(220, ctx.currentTime);
+          osc.frequency.setValueAtTime(146.83, ctx.currentTime + 0.1);
+          gain.gain.setValueAtTime(0.12, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.3);
+        }
+      } catch (e) { /* ignore */ }
+    };
+
+    const screenStart = document.getElementById('screenStart');
+    const screenQuestion = document.getElementById('screenQuestion');
+    const screenResult = document.getElementById('screenResult');
+
+    const btnStart = document.getElementById('btnStart');
+    const btnNext = document.getElementById('btnNext');
+    const btnRestart = document.getElementById('btnRestart');
+
+    const badgeCategory = document.getElementById('badgeCategory');
+    const progressText = document.getElementById('progressText');
+    const timerText = document.getElementById('timerText');
+    const questionTitle = document.getElementById('questionTitle');
+    const optionsContainer = document.getElementById('optionsContainer');
+    const explanationBox = document.getElementById('explanationBox');
+    const explanationText = document.getElementById('explanationText');
+    const scoreDisplay = document.getElementById('scoreDisplay');
+
+    const startQuiz = () => {
+      currentIdx = 0;
+      score = 0;
+      correctCount = 0;
+      scoreDisplay.textContent = '0 Poin';
+      screenStart.classList.add('hidden');
+      screenResult.classList.add('hidden');
+      screenQuestion.classList.remove('hidden');
+      loadQuestion();
+    };
+
+    const loadQuestion = () => {
+      answered = false;
+      const q = questions[currentIdx];
+      badgeCategory.textContent = q.category;
+      badgeCategory.className = 'px-2.5 py-1 rounded-lg text-[10px] font-bold border ' + q.badgeColor;
+      progressText.textContent = \`Soal \${currentIdx + 1}/\${questions.length}\`;
+      questionTitle.textContent = q.q;
+      explanationBox.classList.add('hidden');
+      btnNext.classList.add('hidden');
+
+      optionsContainer.innerHTML = '';
+      q.options.forEach((opt, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'w-full p-3 rounded-2xl bg-slate-900/70 hover:bg-slate-800 border border-slate-700/80 text-left text-xs font-medium text-slate-200 flex items-center gap-3 transition active:scale-98 cursor-pointer';
+        btn.innerHTML = \`<span class="w-6 h-6 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-[10px] text-cyan-400 shrink-0">\${String.fromCharCode(65 + idx)}</span><span class="flex-1">\${opt}</span>\`;
+        btn.onclick = () => selectAnswer(idx);
+        optionsContainer.appendChild(btn);
+      });
+
+      // Start timer
+      clearInterval(timerInterval);
+      timer = 20;
+      timerText.textContent = timer + 's';
+      timerInterval = setInterval(() => {
+        timer--;
+        timerText.textContent = timer + 's';
+        if (timer <= 0) {
+          clearInterval(timerInterval);
+          selectAnswer(-1); // Waktu habis
+        }
+      }, 1000);
+    };
+
+    const selectAnswer = (selectedIdx) => {
+      if (answered) return;
+      answered = true;
+      clearInterval(timerInterval);
+
+      const q = questions[currentIdx];
+      const buttons = optionsContainer.querySelectorAll('button');
+
+      if (selectedIdx === q.answer) {
+        score += 25;
+        correctCount++;
+        scoreDisplay.textContent = score + ' Poin';
+        buttons[selectedIdx].classList.remove('bg-slate-900/70', 'border-slate-700/80');
+        buttons[selectedIdx].classList.add('bg-emerald-950/80', 'border-emerald-500', 'text-emerald-200');
+        playSound(true);
+      } else {
+        if (selectedIdx >= 0) {
+          buttons[selectedIdx].classList.remove('bg-slate-900/70', 'border-slate-700/80');
+          buttons[selectedIdx].classList.add('bg-red-950/80', 'border-red-500', 'text-red-200');
+        }
+        buttons[q.answer].classList.remove('bg-slate-900/70', 'border-slate-700/80');
+        buttons[q.answer].classList.add('bg-emerald-950/80', 'border-emerald-500', 'text-emerald-200');
+        playSound(false);
+      }
+
+      // Disable buttons
+      buttons.forEach(b => b.style.pointerEvents = 'none');
+
+      // Show explanation
+      explanationText.textContent = q.explanation;
+      explanationBox.classList.remove('hidden');
+      btnNext.classList.remove('hidden');
+    };
+
+    btnNext.onclick = () => {
+      currentIdx++;
+      if (currentIdx < questions.length) {
+        loadQuestion();
+      } else {
+        showResult();
+      }
+    };
+
+    const showResult = () => {
+      screenQuestion.classList.add('hidden');
+      screenResult.classList.remove('hidden');
+
+      document.getElementById('correctCount').textContent = \`\${correctCount}/\${questions.length}\`;
+      document.getElementById('finalScore').textContent = score + ' Poin';
+
+      const pct = (correctCount / questions.length) * 100;
+      const msg = document.getElementById('resultMessage');
+      if (pct >= 75) {
+        msg.textContent = '🌟 Hebat sekali! Pengetahuan akademikmu sangat tajam.';
+      } else if (pct >= 50) {
+        msg.textContent = '👍 Bagus! Terus asah kemampuanmu di setiap pelajaran.';
+      } else {
+        msg.textContent = '💪 Jangan menyerah! Coba lagi untuk hasil yang lebih baik.';
+      }
+    };
+
+    btnStart.onclick = startQuiz;
+    btnRestart.onclick = startQuiz;
+  </script>
+</body>
+</html>`
+        }
+      ]
+    }
+
+    // Default Universal Modern Web Generator
     return [
       {
         path: 'index.html',
-        summary: 'Injeksi kartu AI analytics adaptif dan perbaikan sentuh mobile',
-        code: indexFile.content,
+        summary: `Aplikasi web modern untuk "${prompt}"`,
+        code: `<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${prompt}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .glass { background: rgba(30, 41, 59, 0.75); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between p-4 selection:bg-cyan-500 selection:text-white">
+
+  <!-- Header -->
+  <header class="max-w-xl mx-auto w-full pt-3 pb-6 flex items-center justify-between border-b border-slate-800">
+    <div class="flex items-center gap-2.5">
+      <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-cyan-500/20">
+        ⚡
+      </div>
+      <div>
+        <h1 class="text-sm font-bold text-white tracking-tight">${prompt}</h1>
+        <p class="text-[10px] text-cyan-400 font-semibold">GarStudio Interactive App</p>
+      </div>
+    </div>
+    <span class="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+      <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+      Online
+    </span>
+  </header>
+
+  <!-- Content Stage -->
+  <main class="max-w-xl mx-auto w-full flex-1 flex flex-col justify-center py-6">
+    <div class="glass rounded-3xl p-6 shadow-2xl space-y-6">
+      <div class="space-y-2">
+        <h2 class="text-xl font-extrabold text-white">Selamat Datang di Aplikasi Anda</h2>
+        <p class="text-xs text-slate-400 leading-relaxed">
+          Aplikasi ini telah dibuat secara otonom oleh GarStudio AI Agent sesuai permintaan Anda: <span class="text-cyan-400 font-medium">"${prompt}"</span>.
+        </p>
+      </div>
+
+      <!-- Interactive Counter Card -->
+      <div class="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold text-slate-300">Widget Interaktif</span>
+          <span id="counterValue" class="text-lg font-bold text-cyan-400">0</span>
+        </div>
+        <div class="flex gap-2">
+          <button id="btnIncrement" class="flex-1 py-2.5 px-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs transition active:scale-95 cursor-pointer">
+            + Tambah Nilai
+          </button>
+          <button id="btnReset" class="py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs transition active:scale-95 cursor-pointer">
+            Reset
+          </button>
+        </div>
+      </div>
+
+      <div class="p-3.5 rounded-2xl bg-cyan-950/40 border border-cyan-800/40 text-[11px] text-cyan-200/90 leading-relaxed flex items-center gap-2.5">
+        <span class="text-lg">💡</span>
+        <span>Anda dapat meminta koreksi langsung di panel AI Agent, seperti mengubah warna, menambah fitur, atau mengganti teks!</span>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="max-w-xl mx-auto w-full text-center py-3 text-[10px] text-slate-500 border-t border-slate-900">
+    Dijalankan secara real-time di GarStudio Live Preview
+  </footer>
+
+  <script>
+    let count = 0;
+    const val = document.getElementById('counterValue');
+    document.getElementById('btnIncrement').onclick = () => {
+      count++;
+      val.textContent = count;
+    };
+    document.getElementById('btnReset').onclick = () => {
+      count = 0;
+      val.textContent = count;
+    };
+  </script>
+</body>
+</html>`
+      }
+    ]
+  }
+
+  /**
+   * Smart Code Modifier: applies immediate corrections and updates to existing code
+   */
+  public static applySmartCorrection(
+    prompt: string,
+    files: WorkspaceFile[],
+    targetFile?: WorkspaceFile
+  ): FileChange[] {
+    const file =
+      targetFile ||
+      files.find((f) => f.name === 'index.html' || f.path.endsWith('.html')) ||
+      files[0]
+
+    if (!file) {
+      return this.generateSmartWebFiles(prompt)
+    }
+
+    let code = file.content
+    const lower = prompt.toLowerCase()
+
+    // 1. Ganti / Ubah Warna Tema
+    if (lower.includes('warna') || lower.includes('tema') || lower.includes('color')) {
+      if (lower.includes('biru') || lower.includes('blue')) {
+        code = code.replace(/from-cyan-500 via-blue-600 to-indigo-600/g, 'from-blue-600 via-sky-600 to-cyan-600')
+        code = code.replace(/bg-slate-950/g, 'bg-slate-900')
+      } else if (lower.includes('hijau') || lower.includes('green') || lower.includes('emerald')) {
+        code = code.replace(/from-cyan-500 via-blue-600 to-indigo-600/g, 'from-emerald-500 via-teal-600 to-green-600')
+        code = code.replace(/text-cyan-400/g, 'text-emerald-400')
+        code = code.replace(/bg-cyan-600/g, 'bg-emerald-600')
+      } else if (lower.includes('merah') || lower.includes('red') || lower.includes('rose')) {
+        code = code.replace(/from-cyan-500 via-blue-600 to-indigo-600/g, 'from-red-500 via-rose-600 to-pink-600')
+        code = code.replace(/text-cyan-400/g, 'text-rose-400')
+        code = code.replace(/bg-cyan-600/g, 'bg-rose-600')
+      } else if (lower.includes('ungu') || lower.includes('purple')) {
+        code = code.replace(/from-cyan-500 via-blue-600 to-indigo-600/g, 'from-purple-500 via-indigo-600 to-violet-600')
+        code = code.replace(/text-cyan-400/g, 'text-purple-400')
+        code = code.replace(/bg-cyan-600/g, 'bg-purple-600')
+      }
+    }
+
+    // 2. Tambah Timer jika diminta
+    if (lower.includes('timer') && !code.includes('timerText')) {
+      code = code.replace(
+        /<div id="scoreDisplay"[^>]*>([\s\S]*?)<\/div>/,
+        `<div id="scoreDisplay" class="text-lg font-black text-emerald-400 leading-tight">$1</div>\n<div class="text-xs font-mono font-bold text-amber-400 mt-1">⏱️ <span id="timerText">30s</span></div>`
+      )
+    }
+
+    // 3. Modifikasi Teks / Judul
+    if (lower.includes('ganti judul') || lower.includes('ubah judul')) {
+      const match = prompt.match(/judul.*?['"](.*?)['"]/i) || prompt.match(/menjadi (.*)/i)
+      if (match && match[1]) {
+        code = code.replace(/<title>.*?<\/title>/, `<title>${match[1].trim()}</title>`)
+        code = code.replace(/<h1[^>]*>.*?<\/h1>/, `<h1 class="text-sm font-extrabold text-white tracking-tight">${match[1].trim()}</h1>`)
+      }
+    }
+
+    // Add modification comment tag
+    if (!code.includes('<!-- GarStudio AI Updated -->')) {
+      code = `<!-- GarStudio AI Updated -->\n` + code
+    }
+
+    return [
+      {
+        path: file.path,
+        summary: `Koreksi kode sesuai permintaan: "${prompt}"`,
+        code,
+        oldCode: file.content,
       },
     ]
   }

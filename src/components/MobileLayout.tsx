@@ -149,7 +149,7 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
     }
   }
 
-  const handlePromptSubmit = (prompt: string, mode: AIMode) => {
+  const handlePromptSubmit = (prompt: string, mode?: AIMode) => {
     // Automatically show all 3 panels (HTML Code, Web Preview, AI Agent) when user sends prompt
     setCodeVisible(true)
     if (!isPreviewVisible) {
@@ -158,7 +158,7 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
     setPanelFocus('split')
     setEditorHeight(30)
     setPreviewHeight(38)
-    onSendPrompt(prompt, mode)
+    onSendPrompt(prompt, mode || 'plan')
   }
 
   return (

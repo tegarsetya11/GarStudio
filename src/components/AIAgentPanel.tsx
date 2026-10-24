@@ -10,8 +10,6 @@ import {
   User,
   Zap,
   Cpu,
-  ClipboardList,
-  MessageSquareCode,
   X,
   UploadCloud,
   GitBranch,
@@ -26,10 +24,10 @@ interface AIAgentPanelProps {
   messages: AIMessage[]
   aiStage: AIStage
   aiProvider: AIProvider
-  aiMode: AIMode
+  aiMode?: AIMode
   onSwitchProvider: (provider: AIProvider) => void
-  onSwitchMode: (mode: AIMode) => void
-  onSendPrompt: (prompt: string, mode: AIMode) => void
+  onSwitchMode?: (mode: AIMode) => void
+  onSendPrompt: (prompt: string, mode?: AIMode) => void
   onApplyChanges: (changes: FileChange[]) => void
   activeFile: WorkspaceFile | null
   files?: WorkspaceFile[]
@@ -44,9 +42,7 @@ export const AIAgentPanel: React.FC<AIAgentPanelProps> = ({
   messages,
   aiStage,
   aiProvider,
-  aiMode,
   onSwitchProvider,
-  onSwitchMode,
   onSendPrompt,
   onApplyChanges,
   activeFile,
@@ -87,7 +83,7 @@ export const AIAgentPanel: React.FC<AIAgentPanelProps> = ({
       return
     }
 
-    onSendPrompt(prompt, aiMode)
+    onSendPrompt(prompt)
     setInputPrompt('')
   }
 
@@ -115,22 +111,14 @@ export const AIAgentPanel: React.FC<AIAgentPanelProps> = ({
     }
   }
 
-  // Quick suggestions based on active mode
-  const planPrompts = [
-    '📋 Buat dark mode dengan local storage',
-    '📋 Tambahkan navigasi multi-halaman',
-    '📋 Buat kalkulator modern dengan animasi',
-    '📋 Tambahkan kartu cuaca dengan API',
+  // Quick suggestions for autonomous creation and direct corrections
+  const quickPrompts = [
+    '🚀 Buat game quiz (TKA, B. Inggris, B. Indo, Matematika)',
+    '🎨 Ubah tema dark mode & gradient neon',
+    '⏱️ Tambahkan timer 30 detik & hitung skor',
+    '📱 Buat landing page toko online responsif',
+    '🔄 Tambahkan sound efek & animasi transisi',
   ]
-
-  const interactivePrompts = [
-    '💬 Jelaskan cara app.js terhubung ke index.html',
-    '💬 Bagaimana mengubah warna tombol?',
-    '💬 Tambahkan efek ripple ke tombol Click Me',
-    '💬 Berikan 3 saran UX mobile untuk halaman ini',
-  ]
-
-  const activePrompts = aiMode === 'plan' ? planPrompts : interactivePrompts
 
   return (
     <div className="flex flex-col h-full bg-[#181818] text-[#cccccc] font-sans select-none">
@@ -159,29 +147,21 @@ export const AIAgentPanel: React.FC<AIAgentPanelProps> = ({
               {aiProvider === 'claude'
                 ? 'Claude Sonnet 4.5'
                 : aiProvider === 'copilot'
-                ? 'GitHub Copilot'
+                ? 'GitHub Copilot GPT-4o'
                 : 'Gemini 3.8 Flash'}
             </div>
-            <div
-              className={`text-[10px] font-mono ${
-                aiProvider === 'claude'
-                  ? 'text-amber-400'
-                  : aiProvider === 'copilot'
-                  ? 'text-purple-400'
-                  : 'text-cyan-400'
-              }`}
-            >
+            <div className="text-[10px] text-slate-400">
               {aiProvider === 'claude'
                 ? 'Anthropic AI'
                 : aiProvider === 'copilot'
-                ? 'Microsoft / GitHub'
+                ? 'Microsoft / OpenAI'
                 : 'Google AI'}
             </div>
           </div>
         </div>
 
         <div className="flex items-center gap-1.5">
-          {/* Engine Switcher — 3 providers */}
+          {/* Engine Switcher */}
           <div className="flex items-center gap-0.5 bg-[#121212] p-0.5 rounded-lg border border-[#333333]">
             <button
               type="button"
@@ -236,48 +216,16 @@ export const AIAgentPanel: React.FC<AIAgentPanelProps> = ({
         </div>
       </div>
 
-      {/* 2. Mode Selector: Buat Plan vs Interaktif */}
+      {/* 2. Unified Auto-Detect Banner */}
       <div className="px-3 py-1.5 bg-[#141414] border-b border-[#2b2b2b] flex items-center justify-between text-xs">
-        <div className="flex items-center w-full gap-1 bg-[#1e1e1e] p-0.5 rounded border border-[#2e2e2e]">
-          <button
-            type="button"
-            onClick={() => onSwitchMode('plan')}
-            className={`flex-1 py-1 px-2 rounded flex items-center justify-center gap-1.5 text-[11px] font-semibold transition ${
-              aiMode === 'plan'
-                ? 'bg-[#2a2d2e] text-cyan-400 border border-cyan-500/30 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <ClipboardList className="w-3.5 h-3.5" />
-            <span>Buat Plan</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => onSwitchMode('interactive')}
-            className={`flex-1 py-1 px-2 rounded flex items-center justify-center gap-1.5 text-[11px] font-semibold transition ${
-              aiMode === 'interactive'
-                ? 'bg-[#2a2d2e] text-amber-400 border border-amber-500/30 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <MessageSquareCode className="w-3.5 h-3.5" />
-            <span>Interaktif</span>
-          </button>
+        <div className="flex items-center gap-1.5 text-cyan-400 font-semibold text-[11px]">
+          <Sparkles className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+          <span>Auto-Detect AI Agent</span>
         </div>
-      </div>
-
-      {/* Mode Sub-banner / Guidance */}
-      <div className="px-3 py-1 bg-[#1a1a1a] border-b border-[#262626] flex items-center justify-between text-[10px] text-slate-400">
-        <span>
-          {aiMode === 'plan'
-            ? '📋 Mode Plan: Merumuskan arsitektur & file tree sebelum generate kode'
-            : '💬 Mode Interaktif: Tanya jawab cepat & bantuan kode langsung'}
-        </span>
-        <span
-          className={`w-1.5 h-1.5 rounded-full ${
-            aiMode === 'plan' ? 'bg-cyan-400' : 'bg-amber-400'
-          }`}
-        />
+        <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          <span>Auto-Plan, Generate & Koreksi Langsung</span>
+        </div>
       </div>
 
       {/* 3. Messages / Step Stream */}
@@ -298,73 +246,59 @@ export const AIAgentPanel: React.FC<AIAgentPanelProps> = ({
                 </>
               ) : (
                 <>
-                  <img
-                    src={
-                      aiProvider === 'claude'
-                        ? '/icons/claude.png'
-                        : aiProvider === 'copilot'
-                        ? '/icons/copilot.png'
-                        : '/icons/gemini.png'
-                    }
-                    alt=""
-                    className="w-3.5 h-3.5 object-contain"
-                  />
+                  <Bot className="w-3 h-3 text-amber-400" />
                   <span>
-                    GarStudio AI ({aiProvider === 'claude' ? 'Claude Sonnet 4.5' : aiProvider === 'copilot' ? 'Copilot' : 'Gemini 3.8 Flash'})
+                    GarStudio AI (
+                    {aiProvider === 'claude'
+                      ? 'Claude'
+                      : aiProvider === 'copilot'
+                      ? 'Copilot'
+                      : 'Gemini 3.8 Flash'}
+                    )
                   </span>
                 </>
               )}
+              <span>•</span>
+              <span className="flex items-center gap-0.5">
+                <Clock className="w-2.5 h-2.5" />
+                {new Date(msg.timestamp).toLocaleTimeString([], {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </span>
             </div>
 
-            {/* Bubble Content */}
+            {/* Content Bubble */}
             <div
-              className={`p-3 rounded-xl max-w-[92%] leading-relaxed ${
+              className={`p-3 rounded-2xl max-w-[92%] leading-relaxed ${
                 msg.role === 'user'
-                  ? 'bg-[#007acc] text-white rounded-br-none shadow-md'
-                  : 'bg-[#252526] border border-[#333333] text-[#cccccc] rounded-bl-none shadow'
+                  ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-tr-none shadow-md'
+                  : 'bg-[#252526] border border-[#333333] text-slate-200 rounded-tl-none shadow-lg'
               }`}
             >
               <div className="whitespace-pre-wrap">{msg.content}</div>
 
-              {/* Step 1: Architectural Plan Card */}
+              {/* Render Structured Plan if available */}
               {msg.plan && (
-                <div className="mt-3 pt-3 border-t border-[#333333] space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span
-                      className={`font-semibold text-[11px] uppercase tracking-wider ${
-                        aiProvider === 'claude' ? 'text-amber-300' : 'text-cyan-300'
-                      }`}
-                    >
-                      🎯 Step 1: Architectural Plan
+                <div className="mt-3 p-3 bg-[#1e1e1e] border border-cyan-500/20 rounded-xl space-y-2">
+                  <div className="flex items-center justify-between border-b border-[#2e2e2e] pb-1.5">
+                    <span className="font-bold text-cyan-400 flex items-center gap-1 text-[11px]">
+                      🎯 RENCANA ARSITEKTUR
                     </span>
-                    <span className="text-[10px] text-slate-400">{msg.plan.steps.length} Steps</span>
+                    <span className="text-[10px] bg-cyan-950 text-cyan-300 px-1.5 py-0.5 rounded border border-cyan-800">
+                      {msg.plan.steps.length} Langkah
+                    </span>
                   </div>
-
                   <p className="text-[11px] text-slate-300 italic">{msg.plan.overview}</p>
-
-                  <div className="space-y-1.5 mt-2">
-                    {msg.plan.steps.map((step, idx) => (
-                      <div
-                        key={step.id || idx}
-                        className="flex items-start gap-2 p-2 rounded bg-[#1e1e1e] border border-[#333333]"
-                      >
-                        <div className="mt-0.5 text-cyan-400">
-                          {step.status === 'completed' ? (
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                          ) : (
-                            <Clock className="w-3.5 h-3.5 text-amber-400" />
-                          )}
-                        </div>
-                        <div className="flex-1">
-                          <div className="font-medium text-slate-200">{step.title}</div>
-                          <div className="text-[10px] text-slate-400">{step.description}</div>
-                          <div
-                            className={`text-[9px] font-mono mt-0.5 ${
-                              aiProvider === 'claude' ? 'text-amber-400' : 'text-cyan-400'
-                            }`}
-                          >
-                            [{step.action}] {step.filePath}
-                          </div>
+                  <div className="space-y-1.5 pt-1">
+                    {msg.plan.steps.map((s, idx) => (
+                      <div key={s.id || idx} className="flex items-start gap-2 text-[11px]">
+                        <span className="w-4 h-4 rounded-full bg-cyan-500/20 text-cyan-300 font-bold flex items-center justify-center shrink-0 text-[10px]">
+                          {idx + 1}
+                        </span>
+                        <div>
+                          <div className="font-semibold text-slate-200">{s.title}</div>
+                          <div className="text-[10px] text-slate-400">{s.description}</div>
                         </div>
                       </div>
                     ))}
@@ -372,15 +306,16 @@ export const AIAgentPanel: React.FC<AIAgentPanelProps> = ({
                 </div>
               )}
 
-              {/* Step 2 & 3: Generated Code Changes & Diff Action */}
+              {/* Render Changes if available (Auto-applied indicator) */}
               {msg.changes && msg.changes.length > 0 && (
-                <div className="mt-3 pt-3 border-t border-[#333333] space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-emerald-400 text-[11px] uppercase tracking-wider">
-                      ⚡ Generated Code Changes
+                <div className="mt-3 p-3 bg-[#181818] border border-emerald-500/30 rounded-xl space-y-2">
+                  <div className="flex items-center justify-between border-b border-[#2e2e2e] pb-1.5">
+                    <span className="font-bold text-emerald-400 flex items-center gap-1 text-[11px]">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                      Kode Diterapkan Otomatis
                     </span>
                     <span className="text-[10px] text-slate-400">
-                      {msg.changes.length} File{msg.changes.length > 1 ? 's' : ''}
+                      {msg.changes.length} File
                     </span>
                   </div>
 
@@ -388,7 +323,7 @@ export const AIAgentPanel: React.FC<AIAgentPanelProps> = ({
                     {msg.changes.map((change, idx) => (
                       <div
                         key={idx}
-                        className="p-2 rounded bg-[#1e1e1e] border border-[#333333] text-[11px]"
+                        className="p-2 rounded-lg bg-[#222225] border border-[#333333] text-[11px]"
                       >
                         <div className="flex items-center gap-1.5 font-medium text-slate-200">
                           <FileCode className="w-3.5 h-3.5 text-cyan-400" />
@@ -399,13 +334,10 @@ export const AIAgentPanel: React.FC<AIAgentPanelProps> = ({
                     ))}
                   </div>
 
-                  <button
-                    onClick={() => onApplyChanges(msg.changes!)}
-                    className="w-full mt-2 py-2 px-3 bg-[#0e639c] hover:bg-[#1177bb] text-white font-medium rounded text-xs flex items-center justify-center gap-1.5 shadow active:scale-98 transition"
-                  >
-                    <Check className="w-3.5 h-3.5" />
-                    <span>Apply Changes to Workspace</span>
-                  </button>
+                  <div className="w-full mt-2 py-1.5 px-3 bg-emerald-950/70 border border-emerald-600/40 text-emerald-300 font-semibold rounded-lg text-xs flex items-center justify-center gap-1.5 shadow-sm">
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Langsung Aktif & Berjalan di Live Preview</span>
+                  </div>
                 </div>
               )}
             </div>
@@ -424,10 +356,10 @@ export const AIAgentPanel: React.FC<AIAgentPanelProps> = ({
             <Zap className={`w-4 h-4 animate-spin ${aiProvider === 'claude' ? 'text-amber-400' : 'text-cyan-400'}`} />
             <span>
               {aiStage === 'planning'
-                ? `Merancang arsitektur dengan ${aiProvider === 'claude' ? 'Claude AI' : 'Gemini'}...`
+                ? `Merumuskan arsitektur dengan ${aiProvider === 'claude' ? 'Claude AI' : 'Gemini'}...`
                 : aiStage === 'generating'
-                ? `Menulis kode fungsional dengan ${aiProvider === 'claude' ? 'Claude AI' : 'Gemini'}...`
-                : 'Memproses respons interaktif...'}
+                ? `Menghasilkan kode & langsung menerapkan ke Live Preview...`
+                : 'Menganalisis & menerapkan koreksi kode...'}
             </span>
           </div>
         )}
@@ -435,7 +367,6 @@ export const AIAgentPanel: React.FC<AIAgentPanelProps> = ({
         {/* ── INLINE GITHUB UPLOAD CARD ── */}
         {showGhCard && (
           <div className="w-full max-w-sm rounded-2xl border border-slate-700/60 bg-gradient-to-br from-slate-900 to-[#0d1117] shadow-xl overflow-hidden">
-            {/* Card Header */}
             <div className="flex items-center justify-between px-4 py-2.5 bg-[#161b22] border-b border-slate-800">
               <div className="flex items-center gap-2">
                 <GithubIcon className="w-4 h-4 text-white" />
@@ -448,7 +379,6 @@ export const AIAgentPanel: React.FC<AIAgentPanelProps> = ({
             </div>
 
             <div className="p-4 space-y-3 text-xs">
-              {/* Repo Name */}
               <div>
                 <label className="text-slate-400 font-medium mb-1 block">Nama Repository</label>
                 <div className="flex items-center gap-1.5 bg-[#0d1117] border border-slate-700 rounded-lg px-2.5 py-1.5">
@@ -463,7 +393,6 @@ export const AIAgentPanel: React.FC<AIAgentPanelProps> = ({
                 </div>
               </div>
 
-              {/* Visibility Toggle */}
               <div className="flex items-center gap-3">
                 <button type="button" onClick={() => setGhIsPrivate(false)}
                   className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg border text-[11px] font-medium transition ${
@@ -479,28 +408,24 @@ export const AIAgentPanel: React.FC<AIAgentPanelProps> = ({
                 </button>
               </div>
 
-              {/* No Token Warning */}
               {!githubToken && (
                 <div className="p-2.5 rounded-lg bg-amber-950/60 border border-amber-700/40 text-amber-300 text-[11px] leading-relaxed">
                   ⚠️ GitHub Token belum diatur. Buka <strong>Settings</strong> → <em>GitHub PAT</em> untuk mengisi token kamu.
                 </div>
               )}
 
-              {/* Progress */}
               {ghUploading && ghProgress && (
                 <div className="p-2.5 rounded-lg bg-slate-950 border border-cyan-500/20 text-cyan-300 font-mono text-[10px] animate-pulse leading-relaxed">
                   ⏳ {ghProgress}
                 </div>
               )}
 
-              {/* Error */}
               {ghError && (
                 <div className="p-2.5 rounded-lg bg-rose-950/60 border border-rose-700/40 text-rose-300 text-[11px] leading-relaxed">
                   {ghError}
                 </div>
               )}
 
-              {/* Success */}
               {ghResult && (
                 <div className="p-3 rounded-xl bg-emerald-950/60 border border-emerald-700/40 space-y-2">
                   <div className="flex items-center gap-2 text-emerald-300 font-semibold">
@@ -516,13 +441,12 @@ export const AIAgentPanel: React.FC<AIAgentPanelProps> = ({
                 </div>
               )}
 
-              {/* Upload Button */}
               {!ghResult && (
                 <button
                   type="button"
                   disabled={ghUploading || !githubToken}
                   onClick={handleGitHubUploadInline}
-                  className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-slate-700 to-slate-600 hover:from-slate-600 hover:to-slate-500 disabled:opacity-40 text-white font-semibold text-xs flex items-center justify-center gap-2 transition active:scale-95 shadow border border-slate-600"
+                  className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-slate-700 to-slate-600 hover:from-slate-600 hover:to-slate-500 disabled:opacity-40 text-white font-semibold text-xs flex items-center justify-center gap-2 transition active:scale-95 shadow border border-slate-600 cursor-pointer"
                 >
                   <UploadCloud className="w-3.5 h-3.5" />
                   <span>{ghUploading ? 'Mengupload...' : '🚀 Push Semua File ke GitHub'}</span>
@@ -538,10 +462,10 @@ export const AIAgentPanel: React.FC<AIAgentPanelProps> = ({
 
       {/* Suggested Quick Prompts */}
       <div className="px-3 py-1.5 bg-[#1f1f1f] border-t border-[#2b2b2b] overflow-x-auto no-scrollbar flex items-center gap-1.5">
-        {activePrompts.map((qp, i) => (
+        {quickPrompts.map((qp, i) => (
           <button
             key={i}
-            onClick={() => folderLinked && onSendPrompt(qp, aiMode)}
+            onClick={() => folderLinked && onSendPrompt(qp)}
             disabled={!folderLinked}
             className={`px-2.5 py-1 text-[11px] rounded bg-[#252526] border border-[#333333] whitespace-nowrap transition ${
               folderLinked
@@ -568,7 +492,7 @@ export const AIAgentPanel: React.FC<AIAgentPanelProps> = ({
             <button
               type="button"
               onClick={onOpenFolder}
-              className="mt-0.5 w-full py-1.5 px-3 rounded-lg bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-amber-950 font-bold text-[11px] flex items-center justify-center gap-1.5 transition active:scale-95 shadow"
+              className="mt-0.5 w-full py-1.5 px-3 rounded-lg bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-amber-950 font-bold text-[11px] flex items-center justify-center gap-1.5 transition active:scale-95 shadow cursor-pointer"
             >
               <FolderOpen className="w-3.5 h-3.5" />
               <span>Buka / Hubungkan Folder</span>
@@ -589,12 +513,10 @@ export const AIAgentPanel: React.FC<AIAgentPanelProps> = ({
           placeholder={
             !folderLinked
               ? '⚠️ Hubungkan folder dulu sebelum menggunakan AI...'
-              : aiMode === 'plan'
-              ? `[Mode Plan] Minta ${aiProvider === 'claude' ? 'Claude' : 'Gemini'} merencanakan fitur...`
-              : `[Interaktif] Tanya ${aiProvider === 'claude' ? 'Claude' : 'Gemini'} tentang ${activeFile?.name || 'project'}...`
+              : 'Tulis web impian atau koreksi kode (contoh: buat web quiz, ubah warna background, tambah timer)...'
           }
           disabled={!folderLinked || aiStage === 'planning' || aiStage === 'generating'}
-          className={`flex-1 bg-[#252526] border rounded px-3 py-2 text-xs placeholder-slate-500 focus:outline-none transition ${
+          className={`flex-1 bg-[#252526] border rounded-xl px-3 py-2 text-xs placeholder-slate-500 focus:outline-none transition ${
             !folderLinked
               ? 'border-amber-700/40 text-slate-500 cursor-not-allowed'
               : 'border-[#3c3c3c] text-slate-100 focus:border-[#007acc]'
@@ -603,7 +525,7 @@ export const AIAgentPanel: React.FC<AIAgentPanelProps> = ({
         <button
           type="submit"
           disabled={!folderLinked || !inputPrompt.trim() || aiStage === 'planning' || aiStage === 'generating'}
-          className={`p-2 rounded text-white disabled:opacity-40 transition active:scale-95 shadow ${
+          className={`p-2.5 rounded-xl text-white disabled:opacity-40 transition active:scale-95 shadow cursor-pointer ${
             aiProvider === 'claude'
               ? 'bg-amber-600 hover:bg-amber-500'
               : 'bg-[#007acc] hover:bg-[#1177bb]'

@@ -268,74 +268,8 @@ export const App: React.FC = () => {
     settings.copilotModel,
   ] as const
 
-  // Autonomous AI Agent Prompt Workflow (Plan Mode & Interactive Mode)
-  const handleSendPrompt = async (prompt: string, mode: AIMode = 'plan') => {
-    // Automatically ensure all 3 panels (HTML Editor, Web Preview, AI Agent) are visible on prompt
-    setMobilePreviewVisible(true)
-    setViewMode('split')
-
-    const userMsg: AIMessage = {
-      id: 'msg-' + Date.now(),
-      role: 'user',
-      content: prompt,
-      timestamp: Date.now(),
-    }
-    setMessages((prev) => [...prev, userMsg])
-    setRateLimit(null)
-
-    if (mode === 'interactive') {
-      setAiStage('generating')
-      const result = await AIAgentService.interactiveChat(prompt, activeFile, files, ...aiParams)
-      setAiStage('done')
-      if (result.rateLimit) setRateLimit(result.rateLimit)
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: 'msg-chat-' + Date.now(),
-          role: 'assistant',
-          content: result.message,
-          timestamp: Date.now(),
-          changes: result.changes,
-        },
-      ])
-      return
-    }
-
-    // Plan Mode
-    setAiStage('planning')
-    const { plan, rateLimit: rl1 } = await AIAgentService.planArchitecture(prompt, files, ...aiParams)
-    if (rl1) { setRateLimit(rl1); setAiStage('idle'); return }
-
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: 'msg-plan-' + Date.now(),
-        role: 'assistant',
-        content: `📋 [${providerLabel} — Mode Plan] Rencana arsitektur dibuat untuk: "${plan.goal}"`,
-        timestamp: Date.now(),
-        plan,
-      },
-    ])
-
-    setAiStage('generating')
-    const { changes, rateLimit: rl2 } = await AIAgentService.generateCode(plan, files, ...aiParams)
-    if (rl2) { setRateLimit(rl2); setAiStage('idle'); return }
-
-    setAiStage('done')
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: 'msg-code-' + Date.now(),
-        role: 'assistant',
-        content: `✅ [${providerLabel}] Kode selesai untuk ${changes.length} file. Tinjau lalu tekan "Apply" di bawah.`,
-        timestamp: Date.now(),
-        changes,
-      },
-    ])
-  }
-
-  // Apply AI Changes directly to workspace files and save
-  const handleApplyChanges = async (changes: FileChange[]) => {
+  // Apply AI Changes directly to workspace files, persist to storage, and activate index.html
+  const applyChangesToWorkspace = async (changes: FileChange[]) => {
     let updatedFiles = [...files]
 
     for (const change of changes) {
@@ -356,7 +290,106 @@ export const App: React.FC = () => {
     }
 
     setFiles(updatedFiles)
-    alert(`✅ ${changes.length} perubahan file berhasil diterapkan ke workspace!`)
+    FileSystemService.saveToLocalStorage(updatedFiles)
+
+    // Set active file to index.html or first changed file
+    const target = updatedFiles.find((f) => f.name === 'index.html') || updatedFiles[0]
+    if (target) {
+      setActiveFileId(target.id)
+    }
+
+    return updatedFiles
+  }
+
+  // Unified Autonomous AI Agent Prompt Workflow (Auto-detect Plan vs Correction & Auto-Apply)
+  const handleSendPrompt = async (prompt: string, _mode?: AIMode) => {
+    // Automatically ensure all 3 panels (HTML Editor, Web Preview, AI Agent) are visible on prompt
+    setMobilePreviewVisible(true)
+    setViewMode('split')
+
+    const userMsg: AIMessage = {
+      id: 'msg-' + Date.now(),
+      role: 'user',
+      content: prompt,
+      timestamp: Date.now(),
+    }
+    setMessages((prev) => [...prev, userMsg])
+    setRateLimit(null)
+
+    // Auto-detect: apakah ini koreksi/modifikasi langsung atau pembuatan web baru
+    const isCorrection = AIAgentService.isCorrectionOrEdit(prompt, files)
+
+    if (isCorrection) {
+      // ── KOREKSI / EDIT LANGSUNG ──
+      setAiStage('generating')
+      const result = await AIAgentService.reviseAndCorrect(
+        prompt,
+        activeFile,
+        files,
+        ...aiParams
+      )
+      setAiStage('done')
+      if (result.rateLimit) setRateLimit(result.rateLimit)
+
+      if (result.changes && result.changes.length > 0) {
+        await applyChangesToWorkspace(result.changes)
+      }
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: 'msg-fix-' + Date.now(),
+          role: 'assistant',
+          content: result.message || `✨ Koreksi berhasil diterapkan langsung! Web di preview telah diperbarui.`,
+          timestamp: Date.now(),
+          changes: result.changes,
+        },
+      ])
+      return
+    }
+
+    // ── PEMBUATAN WEB BARU (PLAN + AUTO GENERATE + AUTO APPLY) ──
+    setAiStage('planning')
+    const { plan, rateLimit: rl1 } = await AIAgentService.planArchitecture(prompt, files, ...aiParams)
+    if (rl1) setRateLimit(rl1)
+
+    // Tampilkan rencana arsitektur di chat
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: 'msg-plan-' + Date.now(),
+        role: 'assistant',
+        content: `📋 [${providerLabel}] Rencana dibuat untuk: "${plan.goal}"`,
+        timestamp: Date.now(),
+        plan,
+      },
+    ])
+
+    // Langsung generate kodenya dan terapkan otomatis!
+    setAiStage('generating')
+    const { changes, rateLimit: rl2 } = await AIAgentService.generateCode(plan, files, ...aiParams, prompt)
+    if (rl2) setRateLimit(rl2)
+
+    if (changes && changes.length > 0) {
+      await applyChangesToWorkspace(changes)
+    }
+
+    setAiStage('done')
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: 'msg-code-' + Date.now(),
+        role: 'assistant',
+        content: `🚀 [${providerLabel}] Kode selesai dibuat dan langsung dijalankan di Live Preview! Silakan uji web Anda atau berikan koreksi langsung kapan saja.`,
+        timestamp: Date.now(),
+        changes,
+      },
+    ])
+  }
+
+  // Apply AI Changes directly to workspace files and save
+  const handleApplyChanges = async (changes: FileChange[]) => {
+    await applyChangesToWorkspace(changes)
     setViewMode('split')
   }
 
